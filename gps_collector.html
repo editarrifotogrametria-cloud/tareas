@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Point Collector - Professional</title>
+    <style>
+        :root {
+            --primary: #1890ff;
+            --primary-dark: #0974d9;
+            --success: #52c41a;
+            --success-dark: #389e0d;
+            --warning: #faad14;
+            --danger: #ff4d4f;
+            --bg-main: #f0f2f5;
+            --bg-card: #ffffff;
+            --text-primary: rgba(0, 0, 0, 0.85);
+            --text-secondary: rgba(0, 0, 0, 0.65);
+            --text-disabled: rgba(0, 0, 0, 0.25);
+            --border: #d9d9d9;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-card);
+            box-shadow: var(--shadow);
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-connected {
+            background: #f6ffed;
+            color: var(--success-dark);
+            border: 1px solid #b7eb8f;
+        }
+
+        .status-connected .status-dot {
+            background: var(--success);
+        }
+
+        .status-disconnected {
+            background: #fff2e8;
+            color: var(--danger);
+            border: 1px solid #ffbb96;
+        }
+
+        .status-disconnected .status-dot {
+            background: var(--danger);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Container */
+        .container {
+            flex: 1;
+            padding: 24px;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--primary);
+        }
+
+        /* Connection Form */
+        .connection-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: var(--success-dark);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #ff7875;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .stat-item {
+            background: #fafafa;
+            padding: 16px;
+            border-radius: 6px;
+            border: 1px solid #f0f0f0;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .stat-unit {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: 4px;
+        }
+
+        /* Quality Badge */
+        .quality-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .quality-fixed {
+            background: #f6ffed;
+            color: var(--success-dark);
+            border: 1px solid #b7eb8f;
+        }
+
+        .quality-float {
+            background: #e6f7ff;
+            color: #0958d9;
+            border: 1px solid #91d5ff;
+        }
+
+        .quality-dgps, .quality-gps {
+            background: #fffbe6;
+            color: #d48806;
+            border: 1px solid #ffe58f;
+        }
+
+        .quality-nofix {
+            background: #fff2e8;
+            color: var(--danger);
+            border: 1px solid #ffbb96;
+        }
+
+        /* Points List */
+        .points-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 16px;
+        }
+
+        .point-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: #fafafa;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+        }
+
+        .point-item:hover {
+            background: #f0f0f0;
+        }
+
+        .point-info {
+            flex: 1;
+        }
+
+        .point-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .point-coords {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+        }
+
+        .point-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-icon:hover:not(:disabled) {
+            background: #f0f0f0;
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-info {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            color: #0958d9;
+        }
+
+        .alert-success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: var(--success-dark);
+        }
+
+        .alert-warning {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            color: #d48806;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f0f0f0;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #bfbfbf;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8c8c8c;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* RTK Visual Indicator */
+        .rtk-visual {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            position: relative;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f0f2f5, #d9d9d9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .rtk-antenna {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--success), var(--success-dark));
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+        }
+
+        .rtk-antenna::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 20px;
+            background: var(--success);
+            border-radius: 2px;
+        }
+
+        .rtk-signal {
+            position: absolute;
+            border: 2px solid var(--success);
+            border-radius: 50%;
+            animation: signal-pulse 2s infinite;
+        }
+
+        .rtk-signal:nth-child(1) {
+            width: 60px;
+            height: 60px;
+        }
+
+        .rtk-signal:nth-child(2) {
+            width: 80px;
+            height: 80px;
+            animation-delay: 0.5s;
+        }
+
+        .rtk-signal:nth-child(3) {
+            width: 100px;
+            height: 100px;
+            animation-delay: 1s;
+        }
+
+        @keyframes signal-pulse {
+            0% {
+                opacity: 1;
+                transform: scale(0.8);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.2);
+            }
+        }
+
+        /* Export Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-title">
+            <div class="logo">G</div>
+            <h1>GPS Point Collector</h1>
+        </div>
+        <div id="connectionStatus" class="connection-status status-disconnected">
+            <span class="status-dot"></span>
+            <span id="statusText">Desconectado</span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Connection Section -->
+        <div class="grid">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Conexión
+                    </h2>
+                </div>
+                <div class="connection-form">
+                    <div class="form-group">
+                        <label class="form-label">Dirección IP del Receptor</label>
+                        <input
+                            type="text"
+                            id="ipAddress"
+                            class="form-input"
+                            placeholder="192.168.1.100"
+                            value="localhost"
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Puerto</label>
+                        <input
+                            type="number"
+                            id="port"
+                            class="form-input"
+                            placeholder="5000"
+                            value="5000"
+                        >
+                    </div>
+                    <button id="connectBtn" class="btn btn-primary btn-block" onclick="toggleConnection()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 13A6 6 0 1 1 8 2a6 6 0 0 1 0 12z"/>
+                            <path d="M8 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
+                        </svg>
+                        Conectar
+                    </button>
+                </div>
+            </div>
+
+            <!-- GPS Status -->
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Estado GPS
+                    </h2>
+                    <span id="qualityBadge" class="quality-badge quality-nofix">NO FIX</span>
+                </div>
+
+                <div class="rtk-visual">
+                    <div class="rtk-signal"></div>
+                    <div class="rtk-signal"></div>
+                    <div class="rtk-signal"></div>
+                    <div class="rtk-antenna"></div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Latitud</div>
+                        <div class="stat-value" id="latitude">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Longitud</div>
+                        <div class="stat-value" id="longitude">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Altura</div>
+                        <div class="stat-value">
+                            <span id="altitude">--</span>
+                            <span class="stat-unit">m</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Satélites</div>
+                        <div class="stat-value" id="satellites">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">HDOP</div>
+                        <div class="stat-value" id="hdop">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Precisión</div>
+                        <div class="stat-value">
+                            <span id="accuracy">--</span>
+                            <span class="stat-unit">cm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Point Collection -->
+        <div class="card fade-in">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    Puntos Recolectados (<span id="pointCount">0</span>)
+                </h2>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-success" onclick="collectPoint()" id="collectBtn" disabled>
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                        </svg>
+                        Tomar Punto
+                    </button>
+                    <button class="btn btn-primary" onclick="exportPoints()" id="exportBtn" disabled>
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                        </svg>
+                        Exportar CSV
+                    </button>
+                </div>
+            </div>
+
+            <div id="pointsContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📍</div>
+                    <p>No hay puntos recolectados</p>
+                    <p style="font-size: 12px; margin-top: 8px;">Conecta al receptor GPS y comienza a tomar puntos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let connected = false;
+        let points = [];
+        let currentData = null;
+        let pollInterval = null;
+        let apiUrl = '';
+
+        // Toggle Connection
+        function toggleConnection() {
+            if (connected) {
+                disconnect();
+            } else {
+                connect();
+            }
+        }
+
+        // Connect to GPS receiver
+        async function connect() {
+            const ip = document.getElementById('ipAddress').value;
+            const port = document.getElementById('port').value;
+
+            if (!ip || !port) {
+                alert('Por favor ingresa la dirección IP y el puerto');
+                return;
+            }
+
+            apiUrl = `http://${ip}:${port}/api/stats`;
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Connection failed');
+
+                connected = true;
+                updateConnectionUI(true);
+                startPolling();
+
+            } catch (error) {
+                console.error('Error connecting:', error);
+                alert('Error al conectar. Verifica la IP y que el servidor esté corriendo.');
+            }
+        }
+
+        // Disconnect
+        function disconnect() {
+            connected = false;
+            stopPolling();
+            updateConnectionUI(false);
+            resetGPSData();
+        }
+
+        // Start polling GPS data
+        function startPolling() {
+            pollInterval = setInterval(fetchGPSData, 1000);
+            fetchGPSData(); // Fetch immediately
+        }
+
+        // Stop polling
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        // Fetch GPS data
+        async function fetchGPSData() {
+            if (!connected) return;
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Fetch failed');
+
+                const data = await response.json();
+                currentData = data;
+                updateGPSDisplay(data);
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                disconnect();
+            }
+        }
+
+        // Update GPS display
+        function updateGPSDisplay(data) {
+            const pos = data.position || {};
+
+            // Update coordinates
+            document.getElementById('latitude').textContent =
+                pos.lat ? pos.lat.toFixed(7) : '--';
+            document.getElementById('longitude').textContent =
+                pos.lon ? pos.lon.toFixed(7) : '--';
+            document.getElementById('altitude').textContent =
+                pos.alt ? pos.alt.toFixed(3) : '--';
+
+            // Update stats
+            document.getElementById('satellites').textContent =
+                data.satellites || '--';
+            document.getElementById('hdop').textContent =
+                data.hdop ? data.hdop.toFixed(2) : '--';
+            document.getElementById('accuracy').textContent =
+                data.estimated_accuracy ? data.estimated_accuracy.toFixed(1) : '--';
+
+            // Update quality badge
+            updateQualityBadge(data.quality);
+
+            // Enable collect button if we have a fix
+            const hasValidFix = data.quality >= 1 && pos.lat && pos.lon;
+            document.getElementById('collectBtn').disabled = !hasValidFix;
+        }
+
+        // Update quality badge
+        function updateQualityBadge(quality) {
+            const badge = document.getElementById('qualityBadge');
+            let text = 'NO FIX';
+            let className = 'quality-badge quality-nofix';
+
+            if (quality === 4) {
+                text = 'RTK FIXED';
+                className = 'quality-badge quality-fixed';
+            } else if (quality === 5) {
+                text = 'RTK FLOAT';
+                className = 'quality-badge quality-float';
+            } else if (quality === 2) {
+                text = 'DGPS';
+                className = 'quality-badge quality-dgps';
+            } else if (quality === 1) {
+                text = 'GPS';
+                className = 'quality-badge quality-gps';
+            }
+
+            badge.textContent = text;
+            badge.className = className;
+        }
+
+        // Update connection UI
+        function updateConnectionUI(isConnected) {
+            const statusEl = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            const connectBtn = document.getElementById('connectBtn');
+
+            if (isConnected) {
+                statusEl.className = 'connection-status status-connected';
+                statusText.textContent = 'Conectado';
+                connectBtn.innerHTML = `
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                    Desconectar
+                `;
+                connectBtn.className = 'btn btn-danger btn-block';
+            } else {
+                statusEl.className = 'connection-status status-disconnected';
+                statusText.textContent = 'Desconectado';
+                connectBtn.innerHTML = `
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 13A6 6 0 1 1 8 2a6 6 0 0 1 0 12z"/>
+                        <path d="M8 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
+                    </svg>
+                    Conectar
+                `;
+                connectBtn.className = 'btn btn-primary btn-block';
+            }
+        }
+
+        // Reset GPS data display
+        function resetGPSData() {
+            document.getElementById('latitude').textContent = '--';
+            document.getElementById('longitude').textContent = '--';
+            document.getElementById('altitude').textContent = '--';
+            document.getElementById('satellites').textContent = '--';
+            document.getElementById('hdop').textContent = '--';
+            document.getElementById('accuracy').textContent = '--';
+            updateQualityBadge(0);
+            document.getElementById('collectBtn').disabled = true;
+        }
+
+        // Collect point
+        function collectPoint() {
+            if (!currentData || !currentData.position) {
+                alert('No hay datos GPS válidos');
+                return;
+            }
+
+            const pointName = prompt('Nombre del punto:', `P${points.length + 1}`);
+            if (!pointName) return;
+
+            const point = {
+                id: Date.now(),
+                name: pointName,
+                latitude: currentData.position.lat,
+                longitude: currentData.position.lon,
+                altitude: currentData.position.alt,
+                quality: currentData.quality,
+                satellites: currentData.satellites,
+                hdop: currentData.hdop,
+                accuracy: currentData.estimated_accuracy,
+                timestamp: new Date().toISOString()
+            };
+
+            points.push(point);
+            updatePointsList();
+            updatePointCount();
+
+            // Show success message
+            showToast('Punto recolectado exitosamente');
+        }
+
+        // Update points list
+        function updatePointsList() {
+            const container = document.getElementById('pointsContainer');
+
+            if (points.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📍</div>
+                        <p>No hay puntos recolectados</p>
+                        <p style="font-size: 12px; margin-top: 8px;">Conecta al receptor GPS y comienza a tomar puntos</p>
+                    </div>
+                `;
+                document.getElementById('exportBtn').disabled = true;
+                return;
+            }
+
+            let html = '<div class="points-list">';
+            points.forEach((point, index) => {
+                const qualityText = getQualityText(point.quality);
+                html += `
+                    <div class="point-item fade-in">
+                        <div class="point-info">
+                            <div class="point-name">${point.name}</div>
+                            <div class="point-coords">
+                                ${point.latitude.toFixed(7)}, ${point.longitude.toFixed(7)}, ${point.altitude.toFixed(3)}m
+                            </div>
+                            <div class="point-coords">
+                                ${qualityText} | ${point.satellites} sats | HDOP: ${point.hdop.toFixed(2)} | ±${point.accuracy.toFixed(1)}cm
+                            </div>
+                        </div>
+                        <div class="point-actions">
+                            <button class="btn btn-icon" onclick="deletePoint(${index})" title="Eliminar">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+            document.getElementById('exportBtn').disabled = false;
+        }
+
+        // Get quality text
+        function getQualityText(quality) {
+            if (quality === 4) return 'RTK FIXED';
+            if (quality === 5) return 'RTK FLOAT';
+            if (quality === 2) return 'DGPS';
+            if (quality === 1) return 'GPS';
+            return 'NO FIX';
+        }
+
+        // Update point count
+        function updatePointCount() {
+            document.getElementById('pointCount').textContent = points.length;
+        }
+
+        // Delete point
+        function deletePoint(index) {
+            if (confirm('¿Eliminar este punto?')) {
+                points.splice(index, 1);
+                updatePointsList();
+                updatePointCount();
+            }
+        }
+
+        // Export points to CSV
+        function exportPoints() {
+            if (points.length === 0) {
+                alert('No hay puntos para exportar');
+                return;
+            }
+
+            // Create CSV content
+            let csv = 'Nombre,Latitud,Longitud,Altura,Calidad,Satelites,HDOP,Precision,Fecha\n';
+            points.forEach(point => {
+                csv += `${point.name},${point.latitude},${point.longitude},${point.altitude},${getQualityText(point.quality)},${point.satellites},${point.hdop},${point.accuracy},${point.timestamp}\n`;
+            });
+
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `gps_points_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('Puntos exportados exitosamente');
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            // Simple alert for now - you can implement a proper toast component
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-success';
+            toast.style.position = 'fixed';
+            toast.style.top = '80px';
+            toast.style.right = '24px';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                </svg>
+                ${message}
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('GPS Point Collector initialized');
+            updatePointCount();
+        });
+    </script>
+</body>
+</html>
