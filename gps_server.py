@@ -169,16 +169,22 @@ def index():
                 <p>Interfaces profesionales para recolección y monitoreo GPS</p>
             </div>
             <div class="cards">
+                <a href="/professional" class="card">
+                    <div class="card-icon">🛰️</div>
+                    <h2>GPS Professional</h2>
+                    <p>Interfaz completa con Proyectos, DATUM, Tomar Puntos, Replantear, PPP, TILT, y Cámara con EXIF. Todo en uno.</p>
+                    <span class="badge">RECOMENDADO</span>
+                </a>
                 <a href="/collector" class="card">
                     <div class="card-icon">📍</div>
                     <h2>Point Collector</h2>
-                    <p>Interfaz profesional estilo Emlid Flow para recolección de puntos GPS. Conecta tu receptor y comienza a tomar puntos RTK.</p>
-                    <span class="badge">RECOMENDADO</span>
+                    <p>Interfaz simple estilo Emlid Flow para recolección rápida de puntos GPS RTK.</p>
+                    <span class="badge">SIMPLE</span>
                 </a>
                 <a href="/dashboard" class="card">
                     <div class="card-icon">📊</div>
                     <h2>Dashboard</h2>
-                    <p>Dashboard técnico con visualización de datos GNSS, Machine Learning, Tilt, y estadísticas en tiempo real.</p>
+                    <p>Dashboard técnico con visualización de datos GNSS, Machine Learning, y estadísticas.</p>
                     <span class="badge">TÉCNICO</span>
                 </a>
             </div>
@@ -191,7 +197,23 @@ def index():
 @app.route("/collector")
 def collector():
     """Serve the GPS Point Collector interface."""
-    return send_file(os.path.join(BASE_DIR, "gps_collector.html"))
+    try:
+        file_path = os.path.join(BASE_DIR, "gps_collector.html")
+        if os.path.exists(file_path):
+            return send_file(file_path)
+        else:
+            # Redirect to professional interface if old file doesn't exist
+            return send_file(os.path.join(BASE_DIR, "gps_professional.html"))
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
+@app.route("/professional")
+def professional():
+    """Serve the Professional GPS interface with all features."""
+    try:
+        return send_file(os.path.join(BASE_DIR, "gps_professional.html"))
+    except Exception as e:
+        return f"Error loading professional interface: {str(e)}", 500
 
 @app.route("/dashboard")
 def dashboard():
@@ -270,12 +292,14 @@ def main():
     print("=" * 70)
     print("🛰️  GPS Server - Professional Web Interface")
     print("=" * 70)
-    print(f"🏠 Home:           http://0.0.0.0:5000")
-    print(f"📍 Collector:      http://0.0.0.0:5000/collector")
-    print(f"📊 Dashboard:      http://0.0.0.0:5000/dashboard")
-    print(f"📡 API:            http://0.0.0.0:5000/api/stats")
-    print(f"💾 Data Source:    {JSON_DATA_FILE}")
+    print(f"🏠 Home:              http://0.0.0.0:5000")
+    print(f"🎯 Professional:      http://0.0.0.0:5000/professional  ⭐ NUEVO")
+    print(f"📍 Collector:         http://0.0.0.0:5000/collector")
+    print(f"📊 Dashboard:         http://0.0.0.0:5000/dashboard")
+    print(f"📡 API:               http://0.0.0.0:5000/api/stats")
+    print(f"💾 Data Source:       {JSON_DATA_FILE}")
     print("=" * 70)
+    print("✨ NUEVO: GPS Professional con DATUM, Proyectos, Replanteo, PPP, TILT y Cámara")
     print("✅ Server running. Press Ctrl+C to stop.")
     print("")
 
