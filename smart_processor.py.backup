@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""
+GNSS.AI Smart Processor v2.1
+Procesa datos NMEA del K902 GPS con Machine Learning
+Envía a: Bluetooth SPP (FIFO) y Dashboard Web (JSON)
+"""
+
+import serial
+import time
+import os
+import fcntl
+import sys
+import signal
+import json
+import errno
+from datetime import datetime
+
+# ==================== CONFIGURACIÓN ====================
+UART_PORT = '/dev/serial0'
+UART_BAUD = 115200
+FIFO_PATH = '/tmp/gnssai_smart'
+JSON_PATH = '/tmp/gnssai_dashboard_data.json'
+
+# ==================== ML CLASSIFIER ====================
+class GNSS_ML_Classifier:
+    """Clasificador ML híbrido para calidad de señal GNSS"""
+    
+    def __init__(self, model='hybrid'):
+        self.model = model
+        self.stats = {
+            'los_count': 0,
+            'multipath_count': 0,
+            'nlos_count': 0,
+            'total_sats': 0,
+            'avg_confidence': 0
