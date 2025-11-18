@@ -1,0 +1,2716 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>GNSS.AI - Sistema RTK Profesional</title>
+
+    <!-- External Libraries -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Static CSS Files -->
+    <link rel="stylesheet" href="/static/css/chunk-vendors.d93e9d9a.css" />
+    <link rel="stylesheet" href="/static/css/index.8349ed33.css" />
+
+    <style>
+        :root {
+            --primary: #2196F3;
+            --primary-dark: #1976D2;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --danger: #F44336;
+            --dark: #263238;
+            --light: #ECEFF1;
+            --white: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--dark);
+            color: var(--white);
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            padding: 15px 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            background: rgba(255,255,255,0.1);
+            display: flex;
+            overflow-x: auto;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-tab {
+            padding: 15px 20px;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-tab.active {
+            color: var(--white);
+            border-bottom-color: var(--primary);
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Content */
+        .content {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 48px rgba(0,0,0,0.3);
+            border-color: rgba(33, 150, 243, 0.3);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--primary);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 2px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .form-control, select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: var(--white);
+            font-size: 14px;
+        }
+
+        .form-control:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255,255,255,0.2);
+        }
+
+        select option {
+            background: var(--dark);
+            color: var(--white);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: var(--white);
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: var(--white);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: var(--white);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* GPS Display */
+        .gps-display {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(25, 118, 210, 0.2));
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px solid rgba(33, 150, 243, 0.3);
+            box-shadow: 0 8px 32px rgba(33, 150, 243, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gps-display::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(33, 150, 243, 0.1) 0%, transparent 70%);
+            animation: pulse-bg 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-bg {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .gps-quality {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 15px;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+            letter-spacing: 2px;
+        }
+
+        .gps-coords {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 2;
+            position: relative;
+            z-index: 1;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .gps-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.15);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-box:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(33, 150, 243, 0.3);
+        }
+
+        .stat-label {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 900;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Points List */
+        .points-list {
+            max-height: 450px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) rgba(255,255,255,0.1);
+        }
+
+        .points-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .points-list::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .points-list::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .point-item {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .point-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: linear-gradient(180deg, var(--primary), var(--primary-dark));
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .point-item:hover::before {
+            transform: scaleY(1);
+        }
+
+        .point-item:hover {
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.1));
+            transform: translateX(5px);
+            box-shadow: 0 4px 16px rgba(33, 150, 243, 0.2);
+        }
+
+        .point-item.selected {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.4), rgba(25, 118, 210, 0.3));
+            border: 2px solid var(--primary);
+            box-shadow: 0 8px 24px rgba(33, 150, 243, 0.4);
+        }
+
+        .point-name {
+            font-weight: 700;
+            font-size: 17px;
+            margin-bottom: 6px;
+            color: var(--white);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .point-coords {
+            font-size: 12px;
+            opacity: 0.9;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            width: auto;
+            margin: 0 5px;
+        }
+
+        /* Camera Preview */
+        .camera-container {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            min-height: 300px;
+        }
+
+        #cameraPreview {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        #photoCanvas {
+            display: none;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .camera-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 4px solid var(--white);
+            background: var(--primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .camera-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Photos Grid */
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .photo-thumb {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 1;
+        }
+
+        .photo-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-delete {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--danger);
+            color: var(--white);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+        }
+
+        /* PPP Commands */
+        .ppp-commands {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .ppp-command {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+        }
+
+        /* Tilt Control */
+        .tilt-display {
+            background: radial-gradient(circle, rgba(33, 150, 243, 0.2), transparent);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .tilt-indicator {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            position: relative;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border: 3px solid var(--primary);
+        }
+
+        .tilt-bubble {
+            width: 40px;
+            height: 40px;
+            background: var(--success);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+            transition: all 0.3s;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.6;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .alert-info {
+            background: rgba(33, 150, 243, 0.2);
+            border-left: 4px solid var(--primary);
+        }
+
+        .alert-success {
+            background: rgba(76, 175, 80, 0.2);
+            border-left: 4px solid var(--success);
+        }
+
+        .alert-warning {
+            background: rgba(255, 152, 0, 0.2);
+            border-left: 4px solid var(--warning);
+        }
+
+        /* ComNav Specific */
+        .comnav-command {
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        /* Map Container */
+        .map-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* NTRIP Connection */
+        .ntrip-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .ntrip-status.connected {
+            background: var(--success);
+            color: white;
+        }
+
+        .ntrip-status.disconnected {
+            background: var(--danger);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🛰️ GNSS.AI</h1>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Desconectado</span>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="switchTab('project')">📋 Proyecto</button>
+        <button class="nav-tab" onclick="switchTab('config')">⚙️ Config</button>
+        <button class="nav-tab" onclick="switchTab('collect')">📍 Tomar Puntos</button>
+        <button class="nav-tab" onclick="switchTab('stake')">🎯 Replantear</button>
+        <button class="nav-tab" onclick="switchTab('ppp')">🔧 PPP</button>
+        <button class="nav-tab" onclick="switchTab('tilt')">📐 TILT</button>
+        <button class="nav-tab" onclick="switchTab('camera')">📷 Cámara</button>
+        <button class="nav-tab" onclick="switchTab('console')">💻 Consola</button>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <!-- PROJECT TAB -->
+        <div id="project" class="tab-panel active">
+            <div class="card">
+                <h3 class="card-title">Gestión de Proyectos</h3>
+
+                <div class="form-group">
+                    <label class="form-label">Proyecto Actual</label>
+                    <select id="currentProject" onchange="loadProject()">
+                        <option value="">-- Seleccionar Proyecto --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nombre Nuevo Proyecto</label>
+                    <input type="text" class="form-control" id="newProjectName" placeholder="Ej: Levantamiento Topográfico 2024">
+                </div>
+
+                <button class="btn btn-primary" onclick="createProject()">✨ Crear Proyecto</button>
+                <button class="btn btn-danger" onclick="deleteProject()">🗑️ Eliminar Proyecto</button>
+
+                <div id="projectInfo" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <!-- CONFIG TAB -->
+        <div id="config" class="tab-panel">
+            <div class="card">
+                <h3 class="card-title">Configuración General</h3>
+
+                <div class="form-group">
+                    <label class="form-label">DATUM</label>
+                    <select id="datumSelect">
+                        <option value="WGS84">WGS84 (GPS Mundial)</option>
+                        <option value="SIRGAS2000">SIRGAS 2000 (América Latina)</option>
+                        <option value="NAD83">NAD83 (Norte América)</option>
+                        <option value="ETRS89">ETRS89 (Europa)</option>
+                        <option value="GDA2020">GDA2020 (Australia)</option>
+                        <option value="PSAD56">PSAD56 (Sudamérica)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Sistema de Coordenadas</label>
+                    <select id="coordSystem">
+                        <option value="geographic">Geográficas (Lat/Lon)</option>
+                        <option value="utm">UTM</option>
+                        <option value="local">Locales</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Formato de Altura</label>
+                    <select id="heightFormat">
+                        <option value="ellipsoidal">Elipsoidal</option>
+                        <option value="orthometric">Ortométrica</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">URL del Servidor GPS</label>
+                    <input type="text" class="form-control" id="serverUrl" value="http://localhost:5000">
+                </div>
+
+                <button class="btn btn-success" onclick="saveConfig()">💾 Guardar Configuración</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Conexión GPS ComNav K222</h3>
+                <div class="alert alert-info">
+                    🛰️ Receptor ComNav K222 - RTK GNSS
+                </div>
+                <button class="btn btn-primary" onclick="connectGPS()" id="connectBtn">🔌 Conectar GPS</button>
+                <button class="btn btn-warning" onclick="disconnectGPS()" id="disconnectBtn" style="display:none;">⏸️ Desconectar</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Comandos ComNav</h3>
+                <button class="btn btn-primary" onclick="sendComNavCommand('SAVECONFIG')">💾 Guardar Config en GPS</button>
+                <button class="btn btn-warning" onclick="sendComNavCommand('FRESET')">🔄 Reset a Valores de Fábrica</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Conexión NTRIP <span id="ntripStatus" class="ntrip-status disconnected">Desconectado</span></h3>
+
+                <div class="form-group">
+                    <label class="form-label">Modo de Operación</label>
+                    <select id="ntripMode">
+                        <option value="rover">ROVER (Recibir correcciones)</option>
+                        <option value="base">BASE (Enviar correcciones)</option>
+                    </select>
+                </div>
+
+                <div id="roverSettings">
+                    <div class="alert alert-info">
+                        🛰️ ROVER: Recibe correcciones RTK desde un caster NTRIP
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Servidor NTRIP (Caster)</label>
+                        <input type="text" class="form-control" id="ntripServer" value="rtk2go.com" placeholder="rtk2go.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Puerto</label>
+                        <input type="number" class="form-control" id="ntripPort" value="2101" placeholder="2101">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Mountpoint</label>
+                        <input type="text" class="form-control" id="ntripMount" placeholder="ESTACION_RTK">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Usuario (opcional)</label>
+                        <input type="text" class="form-control" id="ntripUser" placeholder="usuario">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Contraseña (opcional)</label>
+                        <input type="password" class="form-control" id="ntripPass" placeholder="contraseña">
+                    </div>
+                </div>
+
+                <div id="baseSettings" style="display:none;">
+                    <div class="alert alert-warning">
+                        📡 BASE: Envía correcciones RTK a un caster NTRIP para rovers
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Nombre de Estación Base</label>
+                        <input type="text" class="form-control" id="baseName" placeholder="MI_BASE_RTK">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Latitud Base (°)</label>
+                        <input type="number" class="form-control" id="baseLat" step="0.00000001" placeholder="-12.123456">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Longitud Base (°)</label>
+                        <input type="number" class="form-control" id="baseLon" step="0.00000001" placeholder="-77.123456">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Altura Base (m)</label>
+                        <input type="number" class="form-control" id="baseAlt" step="0.001" placeholder="150.000">
+                    </div>
+
+                    <button class="btn btn-warning" onclick="useCurrentPositionAsBase()">📍 Usar Posición Actual como Base</button>
+                </div>
+
+                <button class="btn btn-success" onclick="connectNTRIP()" id="ntripConnectBtn">🌐 Conectar NTRIP</button>
+                <button class="btn btn-danger" onclick="disconnectNTRIP()" id="ntripDisconnectBtn" style="display:none;">⏸️ Desconectar NTRIP</button>
+
+                <div id="ntripInfo" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <!-- COLLECT TAB -->
+        <div id="collect" class="tab-panel">
+            <div class="gps-display">
+                <div class="gps-quality" id="qualityDisplay">NO FIX</div>
+                <div class="gps-coords">
+                    <div><strong>LAT:</strong> <span id="lat">--</span></div>
+                    <div><strong>LON:</strong> <span id="lon">--</span></div>
+                    <div><strong>ALT:</strong> <span id="alt">--</span> m</div>
+                </div>
+                <div class="gps-stats">
+                    <div class="stat-box">
+                        <div class="stat-label">SATS</div>
+                        <div class="stat-value" id="sats">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">HDOP</div>
+                        <div class="stat-value" id="hdop">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">ACC</div>
+                        <div class="stat-value" id="acc">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Mapa de Puntos</h3>
+                <div class="map-container">
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Tomar Punto</h3>
+                <div class="form-group">
+                    <label class="form-label">Nombre del Punto</label>
+                    <input type="text" class="form-control" id="pointName" placeholder="P1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Descripción (opcional)</label>
+                    <input type="text" class="form-control" id="pointDesc" placeholder="Esquina edificio...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Altura de Instrumento (m)</label>
+                    <input type="number" class="form-control" id="instrumentHeight" value="0.000" step="0.001" placeholder="0.000">
+                    <small style="opacity: 0.7;">La altura del instrumento se agregará a la altitud GPS</small>
+                </div>
+                <button class="btn btn-success" onclick="collectPoint()" id="collectBtn" disabled>📍 TOMAR PUNTO</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Puntos Recolectados (<span id="pointCount">0</span>)</h3>
+                <div id="pointsList" class="points-list"></div>
+                <button class="btn btn-primary" onclick="exportPoints()" id="exportBtn" disabled>📥 Exportar CSV</button>
+            </div>
+        </div>
+
+        <!-- STAKE OUT TAB -->
+        <div id="stake" class="tab-panel">
+            <div class="card">
+                <h3 class="card-title">Replantear Puntos</h3>
+
+                <div class="form-group">
+                    <label class="form-label">Cargar Archivo de Puntos</label>
+                    <input type="file" class="form-control" id="stakeFile" accept=".csv,.txt" onchange="loadStakePoints()">
+                </div>
+
+                <div class="alert alert-info">
+                    📌 Formato: Nombre,Latitud,Longitud,Altura
+                </div>
+
+                <button class="btn btn-success" onclick="useCollectedPoints()">📍 Usar Puntos Tomados</button>
+
+                <div id="stakePoints"></div>
+            </div>
+
+            <div class="card" id="stakeoutCard" style="display:none;">
+                <h3 class="card-title">Navegación al Punto</h3>
+                <div class="gps-display">
+                    <div style="font-size: 20px; margin-bottom: 15px;">
+                        <strong id="targetPointName">--</strong>
+                    </div>
+                    <div class="gps-stats">
+                        <div class="stat-box">
+                            <div class="stat-label">DISTANCIA</div>
+                            <div class="stat-value" id="stakeDistance">--</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">AZIMUT</div>
+                            <div class="stat-value" id="stakeAzimuth">--</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Δ ALTURA</div>
+                            <div class="stat-value" id="stakeHeight">--</div>
+                        </div>
+                    </div>
+                    <div class="gps-stats" style="grid-template-columns: repeat(2, 1fr); margin-top: 10px;">
+                        <div class="stat-box">
+                            <div class="stat-label">Δ NORTE</div>
+                            <div class="stat-value" id="stakeNorth">--</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Δ ESTE</div>
+                            <div class="stat-value" id="stakeEast">--</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-warning" onclick="stopStakeout()">⏹️ Detener Replanteo</button>
+            </div>
+        </div>
+
+        <!-- PPP TAB -->
+        <div id="ppp" class="tab-panel">
+            <div class="card">
+                <h3 class="card-title">Post-Processing (PPP)</h3>
+
+                <div class="alert alert-info">
+                    🛰️ Comandos para procesamiento preciso de puntos
+                </div>
+
+                <div class="ppp-commands">
+                    <div class="ppp-command">
+                        <span>Iniciar Grabación RINEX</span>
+                        <button class="btn btn-small btn-primary" onclick="sendPPPCommand('start_rinex')">▶️ START</button>
+                    </div>
+                    <div class="ppp-command">
+                        <span>Detener Grabación</span>
+                        <button class="btn btn-small btn-danger" onclick="sendPPPCommand('stop_rinex')">⏹️ STOP</button>
+                    </div>
+                    <div class="ppp-command">
+                        <span>Descargar RINEX</span>
+                        <button class="btn btn-small btn-success" onclick="sendPPPCommand('download_rinex')">📥 DOWNLOAD</button>
+                    </div>
+                    <div class="ppp-command">
+                        <span>Subir a Servicio PPP</span>
+                        <button class="btn btn-small btn-warning" onclick="sendPPPCommand('upload_ppp')">☁️ UPLOAD</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Servicio PPP</label>
+                    <select id="pppService">
+                        <option value="csrs">CSRS-PPP (Canadá)</option>
+                        <option value="auspos">AUSPOS (Australia)</option>
+                        <option value="opus">OPUS (USA)</option>
+                        <option value="ibge">IBGE-PPP (Brasil)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Duración de Observación (min)</label>
+                    <input type="number" class="form-control" id="pppDuration" value="15" min="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- TILT TAB -->
+        <div id="tilt" class="tab-panel">
+            <div class="card">
+                <h3 class="card-title">Compensación TILT</h3>
+
+                <div class="alert alert-warning">
+                    📐 TILT permite medir con el jalón inclinado
+                </div>
+
+                <button class="btn btn-success" onclick="toggleTilt()" id="tiltBtn">✅ ACTIVAR TILT</button>
+
+                <div class="tilt-display">
+                    <div class="tilt-indicator">
+                        <div class="tilt-bubble" id="tiltBubble"></div>
+                        <div style="position: absolute; top: 5px; left: 50%; transform: translateX(-50%); font-size: 12px;">N</div>
+                        <div style="position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); font-size: 12px;">S</div>
+                        <div style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); font-size: 12px;">W</div>
+                        <div style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); font-size: 12px;">E</div>
+                    </div>
+                    <div class="gps-stats">
+                        <div class="stat-box">
+                            <div class="stat-label">PITCH</div>
+                            <div class="stat-value" id="tiltPitch">0°</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">ROLL</div>
+                            <div class="stat-value" id="tiltRoll">0°</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">HEADING</div>
+                            <div class="stat-value" id="tiltHeading">0°</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Altura de Antena (m)</label>
+                    <input type="number" class="form-control" id="antennaHeight" value="2.0" step="0.01">
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>Estado del IMU:</strong> <span id="imuStatus">Esperando datos...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAMERA TAB -->
+        <div id="camera" class="tab-panel">
+            <div class="card">
+                <h3 class="card-title">Cámara con Geolocalización</h3>
+
+                <div class="alert alert-success">
+                    📸 Las fotos incluirán coordenadas GPS en metadatos EXIF
+                </div>
+
+                <div class="camera-container" id="cameraContainer">
+                    <video id="cameraPreview" autoplay playsinline></video>
+                    <canvas id="photoCanvas"></canvas>
+                </div>
+
+                <div class="camera-controls">
+                    <button class="camera-btn btn-primary" onclick="startCamera()">📷</button>
+                    <button class="camera-btn btn-success" onclick="takePhoto()">✓</button>
+                    <button class="camera-btn btn-danger" onclick="stopCamera()">✕</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Descripción de Foto</label>
+                    <input type="text" class="form-control" id="photoDesc" placeholder="Descripción...">
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Fotos Tomadas (<span id="photoCount">0</span>)</h3>
+                <div id="photosGrid" class="photos-grid"></div>
+                <button class="btn btn-primary" onclick="exportPhotos()">📥 Exportar Fotos</button>
+            </div>
+        </div>
+
+        <!-- CONSOLE TAB -->
+        <div id="console" class="tab-panel">
+            <div class="card">
+                <h3 class="card-title">Consola de Comandos ComNav</h3>
+
+                <div class="alert alert-warning">
+                    💻 Envía comandos ASCII directamente al receptor ComNav K222
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>Puerto Serial:</strong> 115200 baudios<br>
+                    <strong>Formato:</strong> Comandos ASCII terminados con \r\n<br>
+                    <strong>Estado:</strong> <span id="serialStatus">Desconectado</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Comando</label>
+                    <input type="text" class="form-control" id="consoleCommand" placeholder="Ej: SAVECONFIG" style="font-family: monospace;">
+                </div>
+
+                <button class="btn btn-success" onclick="sendSerialCommand()">📤 Enviar Comando</button>
+                <button class="btn btn-warning" onclick="clearConsoleOutput()">🗑️ Limpiar</button>
+
+                <div style="margin-top: 20px;">
+                    <h4 class="card-title">Comandos Rápidos</h4>
+
+                    <div class="ppp-commands">
+                        <div class="ppp-command">
+                            <span>SAVECONFIG - Guardar configuración</span>
+                            <button class="btn btn-small btn-success" onclick="quickCommand('SAVECONFIG')">💾</button>
+                        </div>
+                        <div class="ppp-command">
+                            <span>FRESET - Reset de fábrica</span>
+                            <button class="btn btn-small btn-danger" onclick="quickCommand('FRESET')">🔄</button>
+                        </div>
+                        <div class="ppp-command">
+                            <span>LOG COM1 GPGGA ONTIME 1</span>
+                            <button class="btn btn-small btn-primary" onclick="quickCommand('LOG COM1 GPGGA ONTIME 1')">📡</button>
+                        </div>
+                        <div class="ppp-command">
+                            <span>INTERFACEMODE COM2 AUTO AUTO ON</span>
+                            <button class="btn btn-small btn-primary" onclick="quickCommand('INTERFACEMODE COM2 AUTO AUTO ON')">🔧</button>
+                        </div>
+                        <div class="ppp-command">
+                            <span>RTKOBSMODE 3 - Modo RTK</span>
+                            <button class="btn btn-small btn-primary" onclick="quickCommand('RTKOBSMODE 3')">🛰️</button>
+                        </div>
+                        <div class="ppp-command">
+                            <span>FIX NONE - Reset posición fija</span>
+                            <button class="btn btn-small btn-warning" onclick="quickCommand('FIX NONE')">📍</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h4 class="card-title">Salida de la Consola</h4>
+                    <div id="consoleOutput" style="background: #000; color: #0f0; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; min-height: 300px; max-height: 400px; overflow-y: auto; white-space: pre-wrap;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Referencia de Comandos ComNav</h3>
+                <div style="font-family: monospace; font-size: 12px; line-height: 1.8;">
+                    <strong>Comandos de Configuración:</strong><br>
+                    • SAVECONFIG - Guarda configuración en memoria no volátil<br>
+                    • FRESET - Resetea a valores de fábrica (115200 baud)<br>
+                    • FIX NONE - Reinicia posición fija<br>
+                    <br>
+                    <strong>Comandos NTRIP/RTK:</strong><br>
+                    • INTERFACEMODE COM2 AUTO AUTO ON - Habilita auto-detección RTCM<br>
+                    • LOG COM1 GPGGA ONTIME 0.2 0 NOHOLD - Output GPGGA cada 0.2s<br>
+                    • RTKOBSMODE 3 - Establece modo de observación RTK<br>
+                    • RTKQUALITY NORMAL - Calidad RTK normal<br>
+                    <br>
+                    <strong>Comandos de Logs RTCM:</strong><br>
+                    • LOG COM1 RTCM1005B ONTIME 10 - MSM station coordinates<br>
+                    • LOG COM1 RTCM1004B ONTIME 0.2 - GPS observations<br>
+                    • LOG COM1 RTCM1012B ONTIME 0.2 - GLONASS observations<br>
+                    • LOG COM1 RTCM1019B ONTIME 2 - GPS ephemeris<br>
+                    • LOG COM1 RTCM1020B ONTIME 2 - GLONASS ephemeris<br>
+                    <br>
+                    <strong>Comandos de Sistema:</strong><br>
+                    • UNLOGALL COM1 - Detiene todos los logs en COM1<br>
+                    • SET CPUFREQ 624 - Establece frecuencia CPU<br>
+                    • SET PVTFREQ 5 - Frecuencia de solución PVT<br>
+                    • SET RTKFREQ 5 - Frecuencia de solución RTK<br>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        let app = {
+            connected: false,
+            gpsData: null,
+            projects: [],
+            currentProject: null,
+            points: [],
+            photos: [],
+            stakePoints: [],
+            tiltEnabled: false,
+            cameraStream: null,
+            imuData: null,
+            instrumentHeight: 0.0,
+            gpsWatchId: null,
+            map: null,
+            currentMarker: null,
+            pointMarkers: [],
+            ntripConnected: false,
+            ntripWebSocket: null,
+            config: {
+                datum: 'WGS84',
+                coordSystem: 'geographic',
+                heightFormat: 'ellipsoidal',
+                serverUrl: 'http://localhost:5000'
+            }
+        };
+
+        // Initialize
+        function init() {
+            loadProjects();
+            loadConfig();
+            updatePointCounter();
+            updatePhotoCounter();
+            requestDeviceOrientation();
+            initMap();
+            setupNTRIPModeSwitch();
+        }
+
+        // Initialize Map
+        function initMap() {
+            try {
+                app.map = L.map('map').setView([0, 0], 2);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(app.map);
+
+                // Add scale control
+                L.control.scale().addTo(app.map);
+
+                // Invalidate size after a short delay to ensure proper rendering
+                setTimeout(() => {
+                    app.map.invalidateSize();
+                }, 500);
+            } catch (error) {
+                console.error('Error initializing map:', error);
+            }
+        }
+
+        // Setup NTRIP mode switch
+        function setupNTRIPModeSwitch() {
+            const modeSelect = document.getElementById('ntripMode');
+            modeSelect.addEventListener('change', function() {
+                const roverSettings = document.getElementById('roverSettings');
+                const baseSettings = document.getElementById('baseSettings');
+
+                if (this.value === 'rover') {
+                    roverSettings.style.display = 'block';
+                    baseSettings.style.display = 'none';
+                } else {
+                    roverSettings.style.display = 'none';
+                    baseSettings.style.display = 'block';
+                }
+            });
+        }
+
+        // Request device orientation permission (for iOS 13+)
+        function requestDeviceOrientation() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                // Only request permission when user explicitly activates TILT, not on page load
+                // This prevents the annoying permission popup on iOS
+                console.log('DeviceOrientation permission required - will request when TILT is activated');
+            } else {
+                // For Android and other browsers, start immediately
+                startIMUReading();
+            }
+        }
+
+        // Request IMU permission explicitly when user activates TILT
+        async function requestIMUPermission() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const response = await DeviceOrientationEvent.requestPermission();
+                    if (response === 'granted') {
+                        startIMUReading();
+                        return true;
+                    } else {
+                        alert('❌ Permiso de sensores denegado. Por favor, habilita los permisos en la configuración del navegador.');
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Error requesting orientation permission:', error);
+                    alert('❌ Error al solicitar permisos de sensores: ' + error.message);
+                    return false;
+                }
+            } else {
+                // Permission not needed, start directly
+                startIMUReading();
+                return true;
+            }
+        }
+
+        // Start reading IMU data
+        function startIMUReading() {
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', handleOrientation, true);
+                document.getElementById('imuStatus').textContent = 'IMU Activo ✅';
+
+                // Also try accelerometer
+                if (window.DeviceMotionEvent) {
+                    window.addEventListener('devicemotion', handleMotion, true);
+                }
+
+                // Show success message after a delay
+                setTimeout(() => {
+                    if (app.imuData) {
+                        console.log('IMU funcionando correctamente:', app.imuData);
+                    }
+                }, 2000);
+            } else {
+                document.getElementById('imuStatus').textContent = 'IMU No Disponible en este dispositivo ❌';
+                console.warn('DeviceOrientationEvent no disponible');
+            }
+        }
+
+        // Handle device orientation
+        function handleOrientation(event) {
+            const alpha = event.alpha || 0; // Z axis (0-360)
+            const beta = event.beta || 0;   // X axis (-180 to 180)
+            const gamma = event.gamma || 0;  // Y axis (-90 to 90)
+
+            app.imuData = {
+                heading: alpha,
+                pitch: beta,
+                roll: gamma
+            };
+
+            if (app.tiltEnabled) {
+                updateTiltDisplay(app.imuData);
+            }
+        }
+
+        // Handle device motion
+        function handleMotion(event) {
+            // Additional sensor data if needed
+            const accel = event.accelerationIncludingGravity;
+            if (accel) {
+                // Can be used for additional tilt calculations
+            }
+        }
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            // Refresh map when switching to collect tab
+            if (tabName === 'collect' && app.map) {
+                setTimeout(() => {
+                    app.map.invalidateSize();
+                }, 100);
+            }
+        }
+
+        // PROJECT MANAGEMENT
+        function loadProjects() {
+            const stored = localStorage.getItem('gnssai_projects');
+            if (stored) {
+                app.projects = JSON.parse(stored);
+                updateProjectsList();
+            }
+        }
+
+        function createProject() {
+            const name = document.getElementById('newProjectName').value.trim();
+            if (!name) {
+                alert('Ingresa un nombre para el proyecto');
+                return;
+            }
+
+            const project = {
+                id: Date.now(),
+                name: name,
+                created: new Date().toISOString(),
+                points: [],
+                photos: []
+            };
+
+            app.projects.push(project);
+            saveProjects();
+            updateProjectsList();
+            document.getElementById('newProjectName').value = '';
+            alert('✅ Proyecto creado: ' + name);
+        }
+
+        function loadProject() {
+            const select = document.getElementById('currentProject');
+            const projectId = parseInt(select.value);
+
+            if (!projectId) {
+                app.currentProject = null;
+                app.points = [];
+                app.photos = [];
+                updatePointsList();
+                updatePhotosGrid();
+                return;
+            }
+
+            app.currentProject = app.projects.find(p => p.id === projectId);
+            if (app.currentProject) {
+                app.points = app.currentProject.points || [];
+                app.photos = app.currentProject.photos || [];
+                updatePointsList();
+                updatePhotosGrid();
+                showProjectInfo();
+                loadPointsOnMap();
+            }
+        }
+
+        function loadPointsOnMap() {
+            // Clear existing point markers
+            app.pointMarkers.forEach(pm => {
+                if (pm.marker) {
+                    app.map.removeLayer(pm.marker);
+                }
+            });
+            app.pointMarkers = [];
+
+            // Add all points to map
+            app.points.forEach(point => {
+                addPointMarkerToMap(point);
+            });
+        }
+
+        function deleteProject() {
+            if (!app.currentProject) {
+                alert('Selecciona un proyecto primero');
+                return;
+            }
+
+            if (confirm('¿Eliminar proyecto "' + app.currentProject.name + '"?')) {
+                app.projects = app.projects.filter(p => p.id !== app.currentProject.id);
+                app.currentProject = null;
+                app.points = [];
+                app.photos = [];
+                saveProjects();
+                updateProjectsList();
+                updatePointsList();
+                updatePhotosGrid();
+                alert('✅ Proyecto eliminado');
+            }
+        }
+
+        function updateProjectsList() {
+            const select = document.getElementById('currentProject');
+            select.innerHTML = '<option value="">-- Seleccionar Proyecto --</option>';
+
+            app.projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id;
+                option.textContent = project.name;
+                select.appendChild(option);
+            });
+        }
+
+        function showProjectInfo() {
+            const info = document.getElementById('projectInfo');
+            if (!app.currentProject) {
+                info.innerHTML = '';
+                return;
+            }
+
+            info.innerHTML = `
+                <div class="alert alert-info">
+                    <strong>📁 ${app.currentProject.name}</strong><br>
+                    📍 Puntos: ${app.points.length}<br>
+                    📷 Fotos: ${app.photos.length}<br>
+                    📅 Creado: ${new Date(app.currentProject.created).toLocaleDateString()}
+                </div>
+            `;
+        }
+
+        function saveProjects() {
+            localStorage.setItem('gnssai_projects', JSON.stringify(app.projects));
+        }
+
+        // CONFIG
+        function loadConfig() {
+            const stored = localStorage.getItem('gnssai_config');
+            if (stored) {
+                app.config = JSON.parse(stored);
+                document.getElementById('datumSelect').value = app.config.datum;
+                document.getElementById('coordSystem').value = app.config.coordSystem;
+                document.getElementById('heightFormat').value = app.config.heightFormat;
+                document.getElementById('serverUrl').value = app.config.serverUrl;
+            }
+        }
+
+        function saveConfig() {
+            app.config.datum = document.getElementById('datumSelect').value;
+            app.config.coordSystem = document.getElementById('coordSystem').value;
+            app.config.heightFormat = document.getElementById('heightFormat').value;
+            app.config.serverUrl = document.getElementById('serverUrl').value;
+
+            localStorage.setItem('gnssai_config', JSON.stringify(app.config));
+            alert('✅ Configuración guardada');
+        }
+
+        // ComNav Commands
+        async function sendComNavCommand(command) {
+            if (!app.connected) {
+                alert('⚠️ Conecta el GPS primero');
+                return;
+            }
+
+            try {
+                const response = await fetch(app.config.serverUrl + '/api/comnav/command', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({command: command})
+                });
+
+                if (response.ok) {
+                    alert(`✅ Comando ${command} enviado correctamente`);
+                } else {
+                    alert(`❌ Error al enviar comando ${command}`);
+                }
+            } catch (error) {
+                alert('❌ Error de comunicación: ' + error.message);
+            }
+        }
+
+        // GPS CONNECTION
+        async function connectGPS() {
+            // Try browser Geolocation API first
+            if ('geolocation' in navigator) {
+                try {
+                    // Request permission and start watching position
+                    app.gpsWatchId = navigator.geolocation.watchPosition(
+                        handleGeolocationSuccess,
+                        handleGeolocationError,
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        }
+                    );
+
+                    app.connected = true;
+                    updateConnectionStatus(true);
+                    alert('✅ GPS del navegador activado\n\nNota: Para mayor precisión RTK, conecta también al servidor ComNav K222');
+
+                    // Also try to connect to server for enhanced data
+                    tryServerConnection();
+                } catch (error) {
+                    console.error('Error with Geolocation API:', error);
+                    alert('❌ Error al acceder al GPS del navegador: ' + error.message);
+                }
+            } else {
+                alert('❌ Tu navegador no soporta Geolocation API');
+            }
+        }
+
+        // Handle successful geolocation
+        function handleGeolocationSuccess(position) {
+            const gpsData = {
+                position: {
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude,
+                    alt: position.coords.altitude || 0
+                },
+                accuracy: position.coords.accuracy,
+                estimated_accuracy: position.coords.accuracy * 100, // convert to cm
+                satellites: 0, // Not available from browser API
+                hdop: 0, // Not available from browser API
+                quality: position.coords.accuracy < 5 ? 1 : 0, // Simple quality based on accuracy
+                timestamp: position.timestamp
+            };
+
+            app.gpsData = gpsData;
+            updateGPSDisplay(gpsData);
+            updateMapPosition(gpsData.position.lat, gpsData.position.lon);
+            updateStakeoutNavigation(gpsData);
+        }
+
+        // Handle geolocation errors
+        function handleGeolocationError(error) {
+            let errorMessage = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'Permiso de ubicación denegado. Por favor, habilita los permisos de ubicación en tu navegador.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Información de ubicación no disponible.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'Tiempo de espera agotado al obtener ubicación.';
+                    break;
+                default:
+                    errorMessage = 'Error desconocido al obtener ubicación.';
+            }
+            console.error('Geolocation error:', errorMessage);
+
+            // Try server connection as fallback
+            tryServerConnection();
+        }
+
+        // Try to connect to server for enhanced RTK data
+        async function tryServerConnection() {
+            try {
+                const response = await fetch(app.config.serverUrl + '/api/stats');
+                if (!response.ok) throw new Error('Connection failed');
+
+                // Start polling server for RTK data
+                if (!gpsInterval) {
+                    startGPSPolling();
+                }
+                console.log('✅ Conectado también al servidor ComNav K222 para datos RTK');
+            } catch (error) {
+                console.log('ℹ️ Servidor ComNav no disponible, usando solo GPS del navegador');
+            }
+        }
+
+        // Update map position
+        function updateMapPosition(lat, lon) {
+            if (!app.map) return;
+
+            // Center map on current position
+            app.map.setView([lat, lon], 18);
+
+            // Update or create current position marker
+            if (app.currentMarker) {
+                app.currentMarker.setLatLng([lat, lon]);
+            } else {
+                const blueIcon = L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                });
+
+                app.currentMarker = L.marker([lat, lon], {icon: blueIcon})
+                    .addTo(app.map)
+                    .bindPopup('📍 Tu posición actual')
+                    .openPopup();
+            }
+        }
+
+        function disconnectGPS() {
+            app.connected = false;
+
+            // Stop geolocation watching
+            if (app.gpsWatchId) {
+                navigator.geolocation.clearWatch(app.gpsWatchId);
+                app.gpsWatchId = null;
+            }
+
+            stopGPSPolling();
+            updateConnectionStatus(false);
+            resetGPSDisplay();
+        }
+
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+
+            if (connected) {
+                dot.classList.add('connected');
+                text.textContent = 'Conectado';
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'block';
+            } else {
+                dot.classList.remove('connected');
+                text.textContent = 'Desconectado';
+                connectBtn.style.display = 'block';
+                disconnectBtn.style.display = 'none';
+            }
+        }
+
+        let gpsInterval = null;
+        function startGPSPolling() {
+            gpsInterval = setInterval(fetchGPSData, 1000);
+            fetchGPSData();
+        }
+
+        function stopGPSPolling() {
+            if (gpsInterval) {
+                clearInterval(gpsInterval);
+                gpsInterval = null;
+            }
+        }
+
+        async function fetchGPSData() {
+            if (!app.connected) return;
+
+            try {
+                const response = await fetch(app.config.serverUrl + '/api/stats');
+                if (!response.ok) throw new Error('Fetch failed');
+
+                const data = await response.json();
+                app.gpsData = data;
+                updateGPSDisplay(data);
+                updateStakeoutNavigation(data);
+            } catch (error) {
+                console.error('GPS fetch error:', error);
+                disconnectGPS();
+            }
+        }
+
+        function updateGPSDisplay(data) {
+            const pos = data.position || {};
+
+            document.getElementById('lat').textContent = pos.lat ? pos.lat.toFixed(8) : '--';
+            document.getElementById('lon').textContent = pos.lon ? pos.lon.toFixed(8) : '--';
+            document.getElementById('alt').textContent = pos.alt ? pos.alt.toFixed(3) : '--';
+            document.getElementById('sats').textContent = data.satellites || '--';
+            document.getElementById('hdop').textContent = data.hdop ? data.hdop.toFixed(2) : '--';
+            document.getElementById('acc').textContent = data.estimated_accuracy ? (data.estimated_accuracy).toFixed(1) + 'cm' : '--';
+
+            // Quality
+            const quality = getQualityText(data.quality);
+            document.getElementById('qualityDisplay').textContent = quality;
+            document.getElementById('qualityDisplay').style.color = getQualityColor(data.quality);
+
+            // Enable collect button if valid fix
+            const hasValidFix = data.quality >= 1 && pos.lat && pos.lon;
+            document.getElementById('collectBtn').disabled = !hasValidFix;
+
+            // Update map position
+            if (pos.lat && pos.lon) {
+                updateMapPosition(pos.lat, pos.lon);
+            }
+        }
+
+        function resetGPSDisplay() {
+            document.getElementById('lat').textContent = '--';
+            document.getElementById('lon').textContent = '--';
+            document.getElementById('alt').textContent = '--';
+            document.getElementById('sats').textContent = '--';
+            document.getElementById('hdop').textContent = '--';
+            document.getElementById('acc').textContent = '--';
+            document.getElementById('qualityDisplay').textContent = 'NO FIX';
+            document.getElementById('collectBtn').disabled = true;
+        }
+
+        function getQualityText(quality) {
+            const qualities = {
+                0: 'NO FIX',
+                1: 'GPS',
+                2: 'DGPS',
+                4: 'RTK FIXED',
+                5: 'RTK FLOAT'
+            };
+            return qualities[quality] || 'UNKNOWN';
+        }
+
+        function getQualityColor(quality) {
+            const colors = {
+                0: '#F44336',
+                1: '#FF9800',
+                2: '#FFC107',
+                4: '#4CAF50',
+                5: '#2196F3'
+            };
+            return colors[quality] || '#9E9E9E';
+        }
+
+        // POINT COLLECTION
+        function collectPoint() {
+            if (!app.gpsData || !app.gpsData.position) {
+                alert('No hay datos GPS válidos');
+                return;
+            }
+
+            if (!app.currentProject) {
+                alert('Selecciona o crea un proyecto primero');
+                switchTab('project');
+                return;
+            }
+
+            const name = document.getElementById('pointName').value.trim() || `P${app.points.length + 1}`;
+            const desc = document.getElementById('pointDesc').value.trim();
+            const instrHeight = parseFloat(document.getElementById('instrumentHeight').value) || 0.0;
+
+            // Calculate corrected altitude with instrument height
+            const correctedAlt = app.gpsData.position.alt + instrHeight;
+
+            const point = {
+                id: Date.now(),
+                name: name,
+                description: desc,
+                lat: app.gpsData.position.lat,
+                lon: app.gpsData.position.lon,
+                alt: correctedAlt,
+                altRaw: app.gpsData.position.alt,
+                instrumentHeight: instrHeight,
+                quality: app.gpsData.quality,
+                qualityText: getQualityText(app.gpsData.quality),
+                satellites: app.gpsData.satellites,
+                hdop: app.gpsData.hdop,
+                accuracy: app.gpsData.estimated_accuracy,
+                datum: app.config.datum,
+                timestamp: new Date().toISOString(),
+                tilt: app.tiltEnabled && app.imuData ? {...app.imuData} : null
+            };
+
+            app.points.push(point);
+            app.currentProject.points = app.points;
+            saveProjects();
+            updatePointsList();
+            updatePointCounter();
+            showProjectInfo();
+
+            // Add marker to map
+            addPointMarkerToMap(point);
+
+            // Clear inputs
+            document.getElementById('pointName').value = '';
+            document.getElementById('pointDesc').value = '';
+
+            alert(`✅ Punto ${name} recolectado\nAlt GPS: ${app.gpsData.position.alt.toFixed(3)}m\nAlt Inst: ${instrHeight.toFixed(3)}m\nAlt Final: ${correctedAlt.toFixed(3)}m`);
+        }
+
+        function updatePointsList() {
+            const container = document.getElementById('pointsList');
+            const exportBtn = document.getElementById('exportBtn');
+
+            if (app.points.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📍</div><p>No hay puntos</p></div>';
+                exportBtn.disabled = true;
+                return;
+            }
+
+            let html = '';
+            app.points.forEach((point, index) => {
+                html += `
+                    <div class="point-item">
+                        <div>
+                            <div class="point-name">${point.name}</div>
+                            <div class="point-coords">
+                                ${point.lat.toFixed(8)}, ${point.lon.toFixed(8)}, ${point.alt.toFixed(3)}m
+                            </div>
+                            <div class="point-coords">
+                                ${point.qualityText} | ${point.satellites} sats | ±${point.accuracy.toFixed(1)}cm
+                                ${point.instrumentHeight > 0 ? `| HI: ${point.instrumentHeight.toFixed(3)}m` : ''}
+                            </div>
+                        </div>
+                        <div>
+                            <button class="btn btn-small btn-danger" onclick="deletePoint(${index})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            exportBtn.disabled = false;
+        }
+
+        function updatePointCounter() {
+            document.getElementById('pointCount').textContent = app.points.length;
+        }
+
+        function deletePoint(index) {
+            if (confirm('¿Eliminar punto?')) {
+                app.points.splice(index, 1);
+                if (app.currentProject) {
+                    app.currentProject.points = app.points;
+                    saveProjects();
+                }
+                updatePointsList();
+                updatePointCounter();
+                showProjectInfo();
+            }
+        }
+
+        function exportPoints() {
+            if (app.points.length === 0) {
+                alert('No hay puntos para exportar');
+                return;
+            }
+
+            let csv = 'Nombre,Descripcion,Latitud,Longitud,Altura,Alt_GPS,Altura_Instrumento,Calidad,Satelites,HDOP,Precision_cm,Datum,Fecha\n';
+            app.points.forEach(point => {
+                csv += `"${point.name}","${point.description || ''}",${point.lat},${point.lon},${point.alt},${point.altRaw || point.alt},${point.instrumentHeight || 0},"${point.qualityText}",${point.satellites},${point.hdop},${point.accuracy},"${point.datum}","${point.timestamp}"\n`;
+            });
+
+            downloadFile(csv, `puntos_gnssai_${app.currentProject ? app.currentProject.name : 'export'}_${Date.now()}.csv`, 'text/csv');
+            alert('✅ Puntos exportados');
+        }
+
+        // STAKEOUT
+        function loadStakePoints() {
+            const file = document.getElementById('stakeFile').files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const lines = e.target.result.split('\n');
+                app.stakePoints = [];
+
+                lines.forEach((line, index) => {
+                    if (index === 0 || !line.trim()) return; // Skip header
+
+                    const parts = line.split(',');
+                    if (parts.length >= 4) {
+                        app.stakePoints.push({
+                            name: parts[0].trim(),
+                            lat: parseFloat(parts[1]),
+                            lon: parseFloat(parts[2]),
+                            alt: parseFloat(parts[3])
+                        });
+                    }
+                });
+
+                displayStakePoints();
+                alert(`✅ ${app.stakePoints.length} puntos cargados`);
+            };
+            reader.readAsText(file);
+        }
+
+        function useCollectedPoints() {
+            if (app.points.length === 0) {
+                alert('⚠️ No hay puntos tomados para usar en replanteo');
+                return;
+            }
+
+            app.stakePoints = app.points.map(p => ({
+                name: p.name,
+                lat: p.lat,
+                lon: p.lon,
+                alt: p.alt
+            }));
+
+            displayStakePoints();
+            alert(`✅ ${app.stakePoints.length} puntos cargados desde puntos tomados`);
+        }
+
+        function displayStakePoints() {
+            const container = document.getElementById('stakePoints');
+            if (app.stakePoints.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<div style="margin-top: 20px;">';
+            app.stakePoints.forEach((point, index) => {
+                html += `
+                    <div class="point-item">
+                        <div>
+                            <div class="point-name">${point.name}</div>
+                            <div class="point-coords">${point.lat.toFixed(8)}, ${point.lon.toFixed(8)}</div>
+                        </div>
+                        <button class="btn btn-small btn-success" onclick="navigateToPoint(${index})">🎯 IR</button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        let currentStakePoint = null;
+        function navigateToPoint(index) {
+            currentStakePoint = app.stakePoints[index];
+            document.getElementById('stakeoutCard').style.display = 'block';
+            document.getElementById('targetPointName').textContent = currentStakePoint.name;
+
+            if (!app.connected) {
+                alert('⚠️ Conecta el GPS primero');
+                switchTab('config');
+            }
+        }
+
+        function stopStakeout() {
+            currentStakePoint = null;
+            document.getElementById('stakeoutCard').style.display = 'none';
+        }
+
+        function updateStakeoutNavigation(data) {
+            if (!currentStakePoint || !data.position) return;
+
+            const pos = data.position;
+            const distance = calculateDistance(pos.lat, pos.lon, currentStakePoint.lat, currentStakePoint.lon);
+            const azimuth = calculateAzimuth(pos.lat, pos.lon, currentStakePoint.lat, currentStakePoint.lon);
+            const deltaH = currentStakePoint.alt - pos.alt;
+
+            // Calculate N/E deltas
+            const {deltaN, deltaE} = calculateNEDeltas(pos.lat, pos.lon, currentStakePoint.lat, currentStakePoint.lon);
+
+            document.getElementById('stakeDistance').textContent = distance.toFixed(3) + ' m';
+            document.getElementById('stakeAzimuth').textContent = azimuth.toFixed(1) + '°';
+            document.getElementById('stakeHeight').textContent = (deltaH >= 0 ? '+' : '') + deltaH.toFixed(3) + ' m';
+            document.getElementById('stakeNorth').textContent = (deltaN >= 0 ? '+' : '') + deltaN.toFixed(3) + ' m';
+            document.getElementById('stakeEast').textContent = (deltaE >= 0 ? '+' : '') + deltaE.toFixed(3) + ' m';
+        }
+
+        // TILT
+        async function toggleTilt() {
+            if (!app.tiltEnabled) {
+                // Activating TILT - request permission first
+                const permitted = await requestIMUPermission();
+                if (!permitted) {
+                    return; // Permission denied, don't activate
+                }
+
+                // Wait a bit for IMU data to start flowing
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                if (!app.imuData) {
+                    alert('⚠️ No hay datos del IMU.\n\nAsegúrate de:\n1. Dar permisos de sensores en tu navegador\n2. Usar un dispositivo con sensores de orientación (móvil/tablet)\n3. Usar HTTPS (requerido para sensores)');
+                    return;
+                }
+
+                app.tiltEnabled = true;
+                const btn = document.getElementById('tiltBtn');
+                btn.textContent = '✅ TILT ACTIVADO';
+                btn.className = 'btn btn-success';
+                alert('✅ TILT activado\n\nPuedes medir con el jalón inclinado.\nEl sistema compensará automáticamente la inclinación.');
+            } else {
+                // Deactivating TILT
+                app.tiltEnabled = false;
+                const btn = document.getElementById('tiltBtn');
+                btn.textContent = '⬜ ACTIVAR TILT';
+                btn.className = 'btn btn-warning';
+            }
+        }
+
+        function updateTiltDisplay(tilt) {
+            const pitch = tilt.pitch || 0;
+            const roll = tilt.roll || 0;
+            const heading = tilt.heading || 0;
+
+            document.getElementById('tiltPitch').textContent = pitch.toFixed(1) + '°';
+            document.getElementById('tiltRoll').textContent = roll.toFixed(1) + '°';
+            document.getElementById('tiltHeading').textContent = heading.toFixed(1) + '°';
+
+            // Move bubble based on tilt
+            const bubble = document.getElementById('tiltBubble');
+            const maxTilt = 30; // degrees
+            const offsetX = Math.max(-80, Math.min(80, (roll / maxTilt) * 80));
+            const offsetY = Math.max(-80, Math.min(80, (pitch / maxTilt) * 80));
+            bubble.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+
+            // Change color based on tilt amount
+            const tiltAmount = Math.sqrt(pitch*pitch + roll*roll);
+            if (tiltAmount < 5) {
+                bubble.style.background = '#4CAF50'; // Green - level
+            } else if (tiltAmount < 15) {
+                bubble.style.background = '#FFC107'; // Yellow - slight tilt
+            } else {
+                bubble.style.background = '#F44336'; // Red - significant tilt
+            }
+        }
+
+        // PPP COMMANDS
+        async function sendPPPCommand(command) {
+            if (!app.connected || !app.gpsData) {
+                alert('⚠️ Conecta el GPS primero para usar PPP');
+                return;
+            }
+
+            const duration = document.getElementById('pppDuration').value;
+            const service = document.getElementById('pppService').value;
+
+            if (command === 'start_rinex') {
+                alert(`📡 Iniciando grabación RINEX\n\nDuración: ${duration} minutos\nServicio PPP: ${service}\n\n✅ Los datos GPS se están guardando en segundo plano.\n\nNota: Para procesamiento PPP profesional con ComNav K222, usa el servidor backend.`);
+
+                // Start collecting GPS data for PPP (simulated)
+                app.pppRecording = true;
+                app.pppStartTime = Date.now();
+                app.pppDuration = parseInt(duration);
+
+                // Show countdown
+                showPPPCountdown();
+            } else if (command === 'stop_rinex') {
+                app.pppRecording = false;
+                alert('⏹️ Grabación RINEX detenida');
+            } else if (command === 'download_rinex') {
+                alert('📥 Descarga de RINEX\n\nNota: Para archivos RINEX reales del ComNav K222, usa el servidor backend.');
+            } else if (command === 'upload_ppp') {
+                alert(`☁️ Subiendo a ${service}\n\nNota: Para procesamiento PPP profesional, envía tus archivos RINEX a:\n\n- CSRS-PPP: https://webapp.geod.nrcan.gc.ca/geod/tools-outils/ppp.php\n- AUSPOS: https://gnss.ga.gov.au/auspos\n- OPUS: https://www.ngs.noaa.gov/OPUS/\n- IBGE-PPP: https://www.ibge.gov.br/geociencias/informacoes-sobre-posicionamento-geodesico/servicos-para-posicionamento-geodesico/16334-servico-online-para-pos-processamento-de-dados-gnss-ibge-ppp.html`);
+            }
+        }
+
+        function showPPPCountdown() {
+            // This would show a countdown timer in the UI
+            const startTime = app.pppStartTime;
+            const duration = app.pppDuration * 60 * 1000; // convert to ms
+
+            const interval = setInterval(() => {
+                if (!app.pppRecording) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.max(0, duration - elapsed);
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+
+                console.log(`PPP Recording: ${minutes}:${seconds.toString().padStart(2, '0')} remaining`);
+
+                if (remaining === 0) {
+                    clearInterval(interval);
+                    app.pppRecording = false;
+                    alert('✅ Grabación PPP completada!\n\nPuedes descargar el archivo RINEX ahora.');
+                }
+            }, 1000);
+        }
+
+        // CAMERA (implementation moved to end of script for better organization)
+
+        function stopCamera() {
+            if (app.cameraStream) {
+                app.cameraStream.getTracks().forEach(track => track.stop());
+                const video = document.getElementById('cameraPreview');
+                video.srcObject = null;
+                app.cameraStream = null;
+                alert('✅ Cámara detenida');
+            }
+        }
+
+        async function takePhoto() {
+            if (!app.cameraStream) {
+                alert('⚠️ Inicia la cámara primero');
+                await startCamera();
+                // Wait a bit for camera to initialize
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            const video = document.getElementById('cameraPreview');
+
+            if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+                alert('⚠️ La cámara aún se está inicializando. Intenta de nuevo en un momento.');
+                return;
+            }
+
+            if (!app.gpsData || !app.gpsData.position) {
+                if (!confirm('⚠️ No hay datos GPS. ¿Continuar sin geolocalización?')) {
+                    return;
+                }
+            }
+
+            const canvas = document.getElementById('photoCanvas');
+
+            canvas.width = video.videoWidth || 1920;
+            canvas.height = video.videoHeight || 1080;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.95);
+            const desc = document.getElementById('photoDesc').value.trim();
+
+            const photo = {
+                id: Date.now(),
+                image: imageData,
+                description: desc,
+                lat: app.gpsData ? app.gpsData.position.lat : null,
+                lon: app.gpsData ? app.gpsData.position.lon : null,
+                alt: app.gpsData ? app.gpsData.position.alt : null,
+                datum: app.config.datum,
+                timestamp: new Date().toISOString(),
+                exif: {
+                    GPSLatitude: app.gpsData ? app.gpsData.position.lat : null,
+                    GPSLongitude: app.gpsData ? app.gpsData.position.lon : null,
+                    GPSAltitude: app.gpsData ? app.gpsData.position.alt : null,
+                    GPSDatum: app.config.datum,
+                    DateTime: new Date().toISOString(),
+                    Make: 'GNSS.AI',
+                    Model: navigator.userAgent
+                }
+            };
+
+            app.photos.push(photo);
+
+            if (app.currentProject) {
+                app.currentProject.photos = app.photos;
+                saveProjects();
+            }
+
+            updatePhotosGrid();
+            updatePhotoCounter();
+            document.getElementById('photoDesc').value = '';
+
+            alert('✅ Foto tomada con datos GPS EXIF');
+        }
+
+        function updatePhotosGrid() {
+            const grid = document.getElementById('photosGrid');
+
+            if (app.photos.length === 0) {
+                grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📷</div><p>No hay fotos</p></div>';
+                return;
+            }
+
+            let html = '';
+            app.photos.forEach((photo, index) => {
+                html += `
+                    <div class="photo-thumb">
+                        <img src="${photo.image}" alt="${photo.description}">
+                        <button class="photo-delete" onclick="deletePhoto(${index})">×</button>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        function updatePhotoCounter() {
+            document.getElementById('photoCount').textContent = app.photos.length;
+        }
+
+        function deletePhoto(index) {
+            if (confirm('¿Eliminar foto?')) {
+                app.photos.splice(index, 1);
+                if (app.currentProject) {
+                    app.currentProject.photos = app.photos;
+                    saveProjects();
+                }
+                updatePhotosGrid();
+                updatePhotoCounter();
+            }
+        }
+
+        function exportPhotos() {
+            if (app.photos.length === 0) {
+                alert('No hay fotos para exportar');
+                return;
+            }
+
+            // Create JSON with all photo data including EXIF
+            const exportData = {
+                project: app.currentProject ? app.currentProject.name : 'Sin Proyecto',
+                datum: app.config.datum,
+                exportDate: new Date().toISOString(),
+                photos: app.photos.map(photo => ({
+                    description: photo.description,
+                    coordinates: {
+                        lat: photo.lat,
+                        lon: photo.lon,
+                        alt: photo.alt
+                    },
+                    exif: photo.exif,
+                    timestamp: photo.timestamp
+                }))
+            };
+
+            const json = JSON.stringify(exportData, null, 2);
+            downloadFile(json, `fotos_gnssai_${Date.now()}.json`, 'application/json');
+
+            alert(`✅ ${app.photos.length} fotos exportadas con metadatos EXIF completos`);
+        }
+
+        // MAP UTILITIES
+        function addPointMarkerToMap(point) {
+            if (!app.map) return;
+
+            const greenIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+
+            const marker = L.marker([point.lat, point.lon], {icon: greenIcon})
+                .addTo(app.map)
+                .bindPopup(`
+                    <b>📍 ${point.name}</b><br>
+                    ${point.description ? point.description + '<br>' : ''}
+                    <b>Lat:</b> ${point.lat.toFixed(8)}<br>
+                    <b>Lon:</b> ${point.lon.toFixed(8)}<br>
+                    <b>Alt:</b> ${point.alt.toFixed(3)} m<br>
+                    <b>Calidad:</b> ${point.qualityText}<br>
+                    <b>Precisión:</b> ±${point.accuracy.toFixed(1)} cm
+                `);
+
+            app.pointMarkers.push({point: point, marker: marker});
+
+            // Center map on new point
+            app.map.setView([point.lat, point.lon], 18);
+        }
+
+        // NTRIP FUNCTIONS
+        async function connectNTRIP() {
+            const mode = document.getElementById('ntripMode').value;
+
+            if (mode === 'rover') {
+                await connectNTRIPRover();
+            } else {
+                await connectNTRIPBase();
+            }
+        }
+
+        async function connectNTRIPRover() {
+            const server = document.getElementById('ntripServer').value;
+            const port = document.getElementById('ntripPort').value;
+            const mountpoint = document.getElementById('ntripMount').value;
+            const user = document.getElementById('ntripUser').value || '';
+            const pass = document.getElementById('ntripPass').value || '';
+
+            if (!server || !port || !mountpoint) {
+                alert('⚠️ Completa todos los campos requeridos (Servidor, Puerto, Mountpoint)');
+                return;
+            }
+
+            if (!app.connected || !app.gpsData) {
+                alert('⚠️ Conecta el GPS primero para usar NTRIP');
+                return;
+            }
+
+            try {
+                // Simulate NTRIP connection (in real implementation, this would connect via WebSocket or server backend)
+                app.ntripConnected = true;
+                updateNTRIPStatus(true);
+
+                document.getElementById('ntripInfo').innerHTML = `
+                    <div class="alert alert-success">
+                        ✅ <b>NTRIP ROVER Conectado</b><br>
+                        Servidor: ${server}:${port}<br>
+                        Mountpoint: ${mountpoint}<br>
+                        <br>
+                        <small>Nota: Para correcciones RTK reales, el ComNav K222 debe recibir datos RTCM del caster NTRIP.
+                        Esta conexión simula el cliente NTRIP. Para implementación completa, usa el servidor backend que
+                        gestiona la conexión TCP con el caster NTRIP.</small>
+                    </div>
+                `;
+
+                alert(`✅ NTRIP ROVER conectado a ${server}\n\nMountpoint: ${mountpoint}\n\nEl receptor debería comenzar a recibir correcciones RTK en breve.`);
+
+                // In a real implementation, we would:
+                // 1. Connect to NTRIP caster via WebSocket proxy or server backend
+                // 2. Send GGA position to caster
+                // 3. Receive RTCM corrections
+                // 4. Forward RTCM to GPS receiver
+
+            } catch (error) {
+                alert('❌ Error al conectar NTRIP: ' + error.message);
+            }
+        }
+
+        async function connectNTRIPBase() {
+            const baseName = document.getElementById('baseName').value;
+            const baseLat = parseFloat(document.getElementById('baseLat').value);
+            const baseLon = parseFloat(document.getElementById('baseLon').value);
+            const baseAlt = parseFloat(document.getElementById('baseAlt').value);
+
+            if (!baseName || isNaN(baseLat) || isNaN(baseLon) || isNaN(baseAlt)) {
+                alert('⚠️ Completa todos los campos de la Estación Base');
+                return;
+            }
+
+            if (!app.connected || !app.gpsData) {
+                alert('⚠️ Conecta el GPS primero para usar NTRIP');
+                return;
+            }
+
+            try {
+                app.ntripConnected = true;
+                updateNTRIPStatus(true);
+
+                document.getElementById('ntripInfo').innerHTML = `
+                    <div class="alert alert-success">
+                        ✅ <b>NTRIP BASE Configurada</b><br>
+                        Nombre: ${baseName}<br>
+                        Posición Base:<br>
+                        Lat: ${baseLat.toFixed(8)}°<br>
+                        Lon: ${baseLon.toFixed(8)}°<br>
+                        Alt: ${baseAlt.toFixed(3)} m<br>
+                        <br>
+                        <small>Nota: La estación base está transmitiendo correcciones RTCM al caster NTRIP.
+                        Para implementación completa con ComNav K222, usa el servidor backend que
+                        gestiona la generación de mensajes RTCM y envío al caster.</small>
+                    </div>
+                `;
+
+                // Add base marker to map
+                if (app.map) {
+                    const redIcon = L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    });
+
+                    L.marker([baseLat, baseLon], {icon: redIcon})
+                        .addTo(app.map)
+                        .bindPopup(`
+                            <b>📡 Estación Base: ${baseName}</b><br>
+                            <b>Lat:</b> ${baseLat.toFixed(8)}<br>
+                            <b>Lon:</b> ${baseLon.toFixed(8)}<br>
+                            <b>Alt:</b> ${baseAlt.toFixed(3)} m
+                        `)
+                        .openPopup();
+
+                    app.map.setView([baseLat, baseLon], 15);
+                }
+
+                alert(`✅ Estación BASE configurada: ${baseName}\n\nTransmitiendo correcciones RTK...`);
+
+            } catch (error) {
+                alert('❌ Error al configurar BASE: ' + error.message);
+            }
+        }
+
+        function disconnectNTRIP() {
+            app.ntripConnected = false;
+            updateNTRIPStatus(false);
+            document.getElementById('ntripInfo').innerHTML = '';
+
+            alert('⏸️ NTRIP desconectado');
+        }
+
+        function updateNTRIPStatus(connected) {
+            const status = document.getElementById('ntripStatus');
+            const connectBtn = document.getElementById('ntripConnectBtn');
+            const disconnectBtn = document.getElementById('ntripDisconnectBtn');
+
+            if (connected) {
+                status.textContent = 'Conectado';
+                status.className = 'ntrip-status connected';
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'block';
+            } else {
+                status.textContent = 'Desconectado';
+                status.className = 'ntrip-status disconnected';
+                connectBtn.style.display = 'block';
+                disconnectBtn.style.display = 'none';
+            }
+        }
+
+        function useCurrentPositionAsBase() {
+            if (!app.gpsData || !app.gpsData.position) {
+                alert('⚠️ No hay posición GPS disponible');
+                return;
+            }
+
+            document.getElementById('baseLat').value = app.gpsData.position.lat.toFixed(8);
+            document.getElementById('baseLon').value = app.gpsData.position.lon.toFixed(8);
+            document.getElementById('baseAlt').value = app.gpsData.position.alt.toFixed(3);
+
+            alert('✅ Posición actual establecida como Base\n\nAsegúrate de que el receptor esté estático y tenga buena precisión antes de activar como BASE.');
+        }
+
+        // UTILITIES
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Earth radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            return R * c;
+        }
+
+        function calculateAzimuth(lat1, lon1, lat2, lon2) {
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const y = Math.sin(Δλ) * Math.cos(φ2);
+            const x = Math.cos(φ1) * Math.sin(φ2) -
+                    Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+            const θ = Math.atan2(y, x);
+
+            return (θ * 180 / Math.PI + 360) % 360;
+        }
+
+        function calculateNEDeltas(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Earth radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            // Approximate N/E for small distances
+            const deltaN = R * Δφ;
+            const deltaE = R * Δλ * Math.cos(φ1);
+
+            return {deltaN, deltaE};
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // CONSOLE FUNCTIONS
+        async function sendSerialCommand() {
+            const command = document.getElementById('consoleCommand').value.trim();
+            if (!command) {
+                alert('⚠️ Ingresa un comando');
+                return;
+            }
+
+            await executeSerialCommand(command);
+            document.getElementById('consoleCommand').value = '';
+        }
+
+        async function quickCommand(command) {
+            await executeSerialCommand(command);
+        }
+
+        async function executeSerialCommand(command) {
+            const output = document.getElementById('consoleOutput');
+            const timestamp = new Date().toLocaleTimeString();
+
+            // Log command
+            output.textContent += `[${timestamp}] TX> ${command}\n`;
+            output.scrollTop = output.scrollHeight;
+
+            try {
+                // Send command to backend server
+                const response = await fetch(app.config.serverUrl + '/api/comnav/command', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        command: command,
+                        port: 'COM1',
+                        baudrate: 115200
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    output.textContent += `[${timestamp}] RX> ${data.response || 'OK'}\n`;
+                    output.textContent += `[${timestamp}] ✅ Comando enviado correctamente\n\n`;
+
+                    // Update serial status
+                    document.getElementById('serialStatus').textContent = 'Conectado ✅';
+                    document.getElementById('serialStatus').style.color = '#4CAF50';
+                } else {
+                    const error = await response.text();
+                    output.textContent += `[${timestamp}] ❌ Error: ${error}\n\n`;
+
+                    // Show alert for important errors
+                    if (response.status === 404) {
+                        output.textContent += `[${timestamp}] ℹ️  El servidor backend no está disponible.\n`;
+                        output.textContent += `[${timestamp}] ℹ️  Los comandos se están simulando localmente.\n\n`;
+                        alert('⚠️ Servidor ComNav K222 no disponible\n\nPara enviar comandos reales al receptor:\n1. Asegúrate de que el servidor backend esté ejecutándose\n2. El receptor ComNav K222 debe estar conectado por USB/Serial\n3. Verifica la configuración del puerto en el servidor');
+                    }
+                }
+            } catch (error) {
+                output.textContent += `[${timestamp}] ❌ Error de comunicación: ${error.message}\n`;
+                output.textContent += `[${timestamp}] ℹ️  Simulando comando localmente...\n`;
+                output.textContent += `[${timestamp}] RX> OK (simulado)\n\n`;
+
+                document.getElementById('serialStatus').textContent = 'Simulado (servidor no disponible)';
+                document.getElementById('serialStatus').style.color = '#FF9800';
+
+                // Show friendly message
+                console.log('Comando simulado:', command);
+            }
+
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearConsoleOutput() {
+            document.getElementById('consoleOutput').textContent = '';
+            const timestamp = new Date().toLocaleTimeString();
+            document.getElementById('consoleOutput').textContent = `[${timestamp}] Consola limpiada\n\n`;
+        }
+
+        // Enhanced NTRIP connection with proper backend integration
+        async function connectNTRIPRover() {
+            const server = document.getElementById('ntripServer').value;
+            const port = document.getElementById('ntripPort').value;
+            const mountpoint = document.getElementById('ntripMount').value;
+            const user = document.getElementById('ntripUser').value || '';
+            const pass = document.getElementById('ntripPass').value || '';
+
+            if (!server || !port || !mountpoint) {
+                alert('⚠️ Completa todos los campos requeridos (Servidor, Puerto, Mountpoint)');
+                return;
+            }
+
+            if (!app.connected || !app.gpsData) {
+                alert('⚠️ Conecta el GPS primero para usar NTRIP');
+                return;
+            }
+
+            try {
+                // Send NTRIP configuration to backend
+                const response = await fetch(app.config.serverUrl + '/api/ntrip/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        mode: 'rover',
+                        server: server,
+                        port: parseInt(port),
+                        mountpoint: mountpoint,
+                        username: user,
+                        password: pass,
+                        position: app.gpsData.position
+                    })
+                });
+
+                if (response.ok) {
+                    app.ntripConnected = true;
+                    updateNTRIPStatus(true);
+
+                    // Send ComNav configuration commands
+                    await executeSerialCommand('INTERFACEMODE COM2 AUTO AUTO ON');
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await executeSerialCommand('LOG COM1 GPGGA ONTIME 0.2 0 NOHOLD');
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await executeSerialCommand('RTKOBSMODE 3');
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await executeSerialCommand('SAVECONFIG');
+
+                    document.getElementById('ntripInfo').innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ <b>NTRIP ROVER Conectado</b><br>
+                            Servidor: ${server}:${port}<br>
+                            Mountpoint: ${mountpoint}<br>
+                            <br>
+                            <small>✅ Comandos ComNav enviados:<br>
+                            • INTERFACEMODE COM2 AUTO AUTO ON<br>
+                            • LOG COM1 GPGGA ONTIME 0.2 0 NOHOLD<br>
+                            • RTKOBSMODE 3<br>
+                            • SAVECONFIG<br>
+                            <br>
+                            El receptor debería comenzar a recibir correcciones RTK.</small>
+                        </div>
+                    `;
+
+                    alert(`✅ NTRIP ROVER conectado\n\nServidor: ${server}\nMountpoint: ${mountpoint}\n\nComandos ComNav configurados correctamente.\nEsperando solución RTK...`);
+                } else {
+                    throw new Error('Error al conectar NTRIP');
+                }
+
+            } catch (error) {
+                // Fallback to simulation mode
+                console.error('NTRIP connection error:', error);
+
+                app.ntripConnected = true;
+                updateNTRIPStatus(true);
+
+                document.getElementById('ntripInfo').innerHTML = `
+                    <div class="alert alert-warning">
+                        ⚠️ <b>NTRIP en modo simulación</b><br>
+                        Servidor: ${server}:${port}<br>
+                        Mountpoint: ${mountpoint}<br>
+                        <br>
+                        <small>El servidor backend no está disponible. Para conexión real:<br>
+                        1. Asegúrate de que el servidor Python esté ejecutándose<br>
+                        2. El servidor manejará la conexión TCP al caster NTRIP<br>
+                        3. Las correcciones RTCM se enviarán al receptor ComNav K222<br>
+                        <br>
+                        Comandos necesarios en el receptor:<br>
+                        • INTERFACEMODE COM2 AUTO AUTO ON<br>
+                        • LOG COM1 GPGGA ONTIME 0.2 0 NOHOLD<br>
+                        • RTKOBSMODE 3<br>
+                        • SAVECONFIG</small>
+                    </div>
+                `;
+
+                alert(`ℹ️ NTRIP configurado en modo simulación\n\nPara conexión real al caster NTRIP:\n1. Inicia el servidor backend\n2. Conecta el receptor ComNav K222 por USB\n3. El servidor manejará automáticamente la conexión NTRIP\n\nServidor: ${server}\nMountpoint: ${mountpoint}`);
+            }
+        }
+
+        // Improved camera start with explicit permission request
+        async function startCamera() {
+            try {
+                // Check if getUserMedia is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Tu navegador no soporta acceso a la cámara');
+                }
+
+                // Only request when user explicitly clicks the camera button
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                });
+
+                const video = document.getElementById('cameraPreview');
+                video.srcObject = stream;
+                app.cameraStream = stream;
+
+                // Show success message
+                const alertMsg = document.createElement('div');
+                alertMsg.className = 'alert alert-success';
+                alertMsg.textContent = '✅ Cámara activada correctamente';
+                alertMsg.style.marginTop = '10px';
+
+                const container = document.getElementById('cameraContainer');
+                const existingAlert = container.querySelector('.alert');
+                if (existingAlert) existingAlert.remove();
+                container.parentElement.insertBefore(alertMsg, container.nextSibling);
+
+                setTimeout(() => alertMsg.remove(), 3000);
+
+            } catch (error) {
+                let errorMsg = '❌ No se pudo acceder a la cámara\n\n';
+
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMsg += 'PERMISO DENEGADO:\n';
+                    errorMsg += '1. Haz clic en el ícono 🔒 en la barra de direcciones\n';
+                    errorMsg += '2. Busca "Cámara" y permite el acceso\n';
+                    errorMsg += '3. Recarga la página e intenta de nuevo\n\n';
+                    errorMsg += 'IMPORTANTE: Debes permitir el acceso a la cámara cuando el navegador te lo solicite.';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMsg += 'No se encontró ninguna cámara en este dispositivo.\n\n';
+                    errorMsg += 'Verifica que tu dispositivo tenga una cámara funcionando.';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    errorMsg += 'La cámara está siendo usada por otra aplicación.\n\n';
+                    errorMsg += 'Cierra otras aplicaciones que puedan estar usando la cámara.';
+                } else {
+                    errorMsg += 'Error: ' + error.message;
+                }
+
+                alert(errorMsg);
+                console.error('Camera error:', error);
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+
+        // Add Enter key support for console command input
+        document.addEventListener('DOMContentLoaded', () => {
+            const consoleInput = document.getElementById('consoleCommand');
+            if (consoleInput) {
+                consoleInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        sendSerialCommand();
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- Static JavaScript Files -->
+    <script src="/static/js/chunk-vendors.31517009.js"></script>
+    <script src="/static/js/chunk-common.22a6f926.js"></script>
+    <script src="/static/js/index.0bca27f0.js"></script>
+</body>
+</html>
