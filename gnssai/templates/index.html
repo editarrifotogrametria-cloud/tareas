@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>GPS Professional - RTK Survey</title>
+    <title>GNSS.AI - Sistema RTK Profesional</title>
     <style>
         :root {
             --primary: #2196F3;
@@ -272,6 +272,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .point-item:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .point-item.selected {
+            background: rgba(33, 150, 243, 0.3);
+            border: 2px solid var(--primary);
         }
 
         .point-name {
@@ -300,6 +311,7 @@
             border-radius: 12px;
             overflow: hidden;
             margin-bottom: 20px;
+            min-height: 300px;
         }
 
         #cameraPreview {
@@ -313,12 +325,10 @@
         }
 
         .camera-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
             display: flex;
-            gap: 20px;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
         }
 
         .camera-btn {
@@ -329,10 +339,14 @@
             background: var(--primary);
             cursor: pointer;
             transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
         }
 
-        .camera-btn:hover {
-            transform: scale(1.1);
+        .camera-btn:active {
+            transform: scale(0.95);
         }
 
         /* Photos Grid */
@@ -414,6 +428,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             box-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+            transition: all 0.3s;
         }
 
         /* Empty State */
@@ -449,12 +464,22 @@
             background: rgba(255, 152, 0, 0.2);
             border-left: 4px solid var(--warning);
         }
+
+        /* ComNav Specific */
+        .comnav-command {
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
     <!-- Header -->
     <div class="header">
-        <h1>🛰️ GPS Professional</h1>
+        <h1>🛰️ GNSS.AI</h1>
         <div class="status-indicator">
             <div class="status-dot" id="statusDot"></div>
             <span id="statusText">Desconectado</span>
@@ -541,9 +566,18 @@
             </div>
 
             <div class="card">
-                <h3 class="card-title">Conexión GPS</h3>
+                <h3 class="card-title">Conexión GPS ComNav K222</h3>
+                <div class="alert alert-info">
+                    🛰️ Receptor ComNav K222 - RTK GNSS
+                </div>
                 <button class="btn btn-primary" onclick="connectGPS()" id="connectBtn">🔌 Conectar GPS</button>
                 <button class="btn btn-warning" onclick="disconnectGPS()" id="disconnectBtn" style="display:none;">⏸️ Desconectar</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Comandos ComNav</h3>
+                <button class="btn btn-primary" onclick="sendComNavCommand('SAVECONFIG')">💾 Guardar Config en GPS</button>
+                <button class="btn btn-warning" onclick="sendComNavCommand('FRESET')">🔄 Reset a Valores de Fábrica</button>
             </div>
         </div>
 
@@ -582,6 +616,11 @@
                     <label class="form-label">Descripción (opcional)</label>
                     <input type="text" class="form-control" id="pointDesc" placeholder="Esquina edificio...">
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Altura de Instrumento (m)</label>
+                    <input type="number" class="form-control" id="instrumentHeight" value="0.000" step="0.001" placeholder="0.000">
+                    <small style="opacity: 0.7;">La altura del instrumento se agregará a la altitud GPS</small>
+                </div>
                 <button class="btn btn-success" onclick="collectPoint()" id="collectBtn" disabled>📍 TOMAR PUNTO</button>
             </div>
 
@@ -606,6 +645,8 @@
                     📌 Formato: Nombre,Latitud,Longitud,Altura
                 </div>
 
+                <button class="btn btn-success" onclick="useCollectedPoints()">📍 Usar Puntos Tomados</button>
+
                 <div id="stakePoints"></div>
             </div>
 
@@ -629,7 +670,18 @@
                             <div class="stat-value" id="stakeHeight">--</div>
                         </div>
                     </div>
+                    <div class="gps-stats" style="grid-template-columns: repeat(2, 1fr); margin-top: 10px;">
+                        <div class="stat-box">
+                            <div class="stat-label">Δ NORTE</div>
+                            <div class="stat-value" id="stakeNorth">--</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Δ ESTE</div>
+                            <div class="stat-value" id="stakeEast">--</div>
+                        </div>
+                    </div>
                 </div>
+                <button class="btn btn-warning" onclick="stopStakeout()">⏹️ Detener Replanteo</button>
             </div>
         </div>
 
@@ -692,6 +744,10 @@
                 <div class="tilt-display">
                     <div class="tilt-indicator">
                         <div class="tilt-bubble" id="tiltBubble"></div>
+                        <div style="position: absolute; top: 5px; left: 50%; transform: translateX(-50%); font-size: 12px;">N</div>
+                        <div style="position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); font-size: 12px;">S</div>
+                        <div style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); font-size: 12px;">W</div>
+                        <div style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); font-size: 12px;">E</div>
                     </div>
                     <div class="gps-stats">
                         <div class="stat-box">
@@ -713,6 +769,10 @@
                     <label class="form-label">Altura de Antena (m)</label>
                     <input type="number" class="form-control" id="antennaHeight" value="2.0" step="0.01">
                 </div>
+
+                <div class="alert alert-info">
+                    <strong>Estado del IMU:</strong> <span id="imuStatus">Esperando datos...</span>
+                </div>
             </div>
         </div>
 
@@ -725,13 +785,15 @@
                     📸 Las fotos incluirán coordenadas GPS en metadatos EXIF
                 </div>
 
-                <div class="camera-container">
+                <div class="camera-container" id="cameraContainer">
                     <video id="cameraPreview" autoplay playsinline></video>
                     <canvas id="photoCanvas"></canvas>
-                    <div class="camera-controls">
-                        <button class="camera-btn" onclick="startCamera()">📷</button>
-                        <button class="camera-btn" onclick="takePhoto()" style="background: var(--success);">✓</button>
-                    </div>
+                </div>
+
+                <div class="camera-controls">
+                    <button class="camera-btn btn-primary" onclick="startCamera()">📷</button>
+                    <button class="camera-btn btn-success" onclick="takePhoto()">✓</button>
+                    <button class="camera-btn btn-danger" onclick="stopCamera()">✕</button>
                 </div>
 
                 <div class="form-group">
@@ -760,6 +822,8 @@
             stakePoints: [],
             tiltEnabled: false,
             cameraStream: null,
+            imuData: null,
+            instrumentHeight: 0.0,
             config: {
                 datum: 'WGS84',
                 coordSystem: 'geographic',
@@ -774,6 +838,63 @@
             loadConfig();
             updatePointCounter();
             updatePhotoCounter();
+            requestDeviceOrientation();
+        }
+
+        // Request device orientation permission (for iOS 13+)
+        function requestDeviceOrientation() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            startIMUReading();
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                startIMUReading();
+            }
+        }
+
+        // Start reading IMU data
+        function startIMUReading() {
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', handleOrientation, true);
+                document.getElementById('imuStatus').textContent = 'IMU Activo';
+            } else {
+                document.getElementById('imuStatus').textContent = 'IMU No Disponible';
+            }
+
+            // Also try accelerometer
+            if (window.DeviceMotionEvent) {
+                window.addEventListener('devicemotion', handleMotion, true);
+            }
+        }
+
+        // Handle device orientation
+        function handleOrientation(event) {
+            const alpha = event.alpha || 0; // Z axis (0-360)
+            const beta = event.beta || 0;   // X axis (-180 to 180)
+            const gamma = event.gamma || 0;  // Y axis (-90 to 90)
+
+            app.imuData = {
+                heading: alpha,
+                pitch: beta,
+                roll: gamma
+            };
+
+            if (app.tiltEnabled) {
+                updateTiltDisplay(app.imuData);
+            }
+        }
+
+        // Handle device motion
+        function handleMotion(event) {
+            // Additional sensor data if needed
+            const accel = event.accelerationIncludingGravity;
+            if (accel) {
+                // Can be used for additional tilt calculations
+            }
         }
 
         // Tab Switching
@@ -791,7 +912,7 @@
 
         // PROJECT MANAGEMENT
         function loadProjects() {
-            const stored = localStorage.getItem('gps_projects');
+            const stored = localStorage.getItem('gnssai_projects');
             if (stored) {
                 app.projects = JSON.parse(stored);
                 updateProjectsList();
@@ -892,12 +1013,12 @@
         }
 
         function saveProjects() {
-            localStorage.setItem('gps_projects', JSON.stringify(app.projects));
+            localStorage.setItem('gnssai_projects', JSON.stringify(app.projects));
         }
 
         // CONFIG
         function loadConfig() {
-            const stored = localStorage.getItem('gps_config');
+            const stored = localStorage.getItem('gnssai_config');
             if (stored) {
                 app.config = JSON.parse(stored);
                 document.getElementById('datumSelect').value = app.config.datum;
@@ -913,8 +1034,32 @@
             app.config.heightFormat = document.getElementById('heightFormat').value;
             app.config.serverUrl = document.getElementById('serverUrl').value;
 
-            localStorage.setItem('gps_config', JSON.stringify(app.config));
+            localStorage.setItem('gnssai_config', JSON.stringify(app.config));
             alert('✅ Configuración guardada');
+        }
+
+        // ComNav Commands
+        async function sendComNavCommand(command) {
+            if (!app.connected) {
+                alert('⚠️ Conecta el GPS primero');
+                return;
+            }
+
+            try {
+                const response = await fetch(app.config.serverUrl + '/api/comnav/command', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({command: command})
+                });
+
+                if (response.ok) {
+                    alert(`✅ Comando ${command} enviado correctamente`);
+                } else {
+                    alert(`❌ Error al enviar comando ${command}`);
+                }
+            } catch (error) {
+                alert('❌ Error de comunicación: ' + error.message);
+            }
         }
 
         // GPS CONNECTION
@@ -926,7 +1071,7 @@
                 app.connected = true;
                 updateConnectionStatus(true);
                 startGPSPolling();
-                alert('✅ Conectado al GPS');
+                alert('✅ Conectado al GPS ComNav K222');
             } catch (error) {
                 alert('❌ Error al conectar. Verifica que el servidor esté corriendo en: ' + app.config.serverUrl);
             }
@@ -1006,11 +1151,6 @@
             // Enable collect button if valid fix
             const hasValidFix = data.quality >= 1 && pos.lat && pos.lon;
             document.getElementById('collectBtn').disabled = !hasValidFix;
-
-            // Update TILT if enabled
-            if (app.tiltEnabled && data.tilt) {
-                updateTiltDisplay(data.tilt);
-            }
         }
 
         function resetGPSDisplay() {
@@ -1061,6 +1201,10 @@
 
             const name = document.getElementById('pointName').value.trim() || `P${app.points.length + 1}`;
             const desc = document.getElementById('pointDesc').value.trim();
+            const instrHeight = parseFloat(document.getElementById('instrumentHeight').value) || 0.0;
+
+            // Calculate corrected altitude with instrument height
+            const correctedAlt = app.gpsData.position.alt + instrHeight;
 
             const point = {
                 id: Date.now(),
@@ -1068,7 +1212,9 @@
                 description: desc,
                 lat: app.gpsData.position.lat,
                 lon: app.gpsData.position.lon,
-                alt: app.gpsData.position.alt,
+                alt: correctedAlt,
+                altRaw: app.gpsData.position.alt,
+                instrumentHeight: instrHeight,
                 quality: app.gpsData.quality,
                 qualityText: getQualityText(app.gpsData.quality),
                 satellites: app.gpsData.satellites,
@@ -1076,7 +1222,7 @@
                 accuracy: app.gpsData.estimated_accuracy,
                 datum: app.config.datum,
                 timestamp: new Date().toISOString(),
-                tilt: app.tiltEnabled && app.gpsData.tilt ? app.gpsData.tilt : null
+                tilt: app.tiltEnabled && app.imuData ? {...app.imuData} : null
             };
 
             app.points.push(point);
@@ -1090,7 +1236,7 @@
             document.getElementById('pointName').value = '';
             document.getElementById('pointDesc').value = '';
 
-            alert('✅ Punto ' + name + ' recolectado');
+            alert(`✅ Punto ${name} recolectado\nAlt GPS: ${app.gpsData.position.alt.toFixed(3)}m\nAlt Inst: ${instrHeight.toFixed(3)}m\nAlt Final: ${correctedAlt.toFixed(3)}m`);
         }
 
         function updatePointsList() {
@@ -1114,6 +1260,7 @@
                             </div>
                             <div class="point-coords">
                                 ${point.qualityText} | ${point.satellites} sats | ±${point.accuracy.toFixed(1)}cm
+                                ${point.instrumentHeight > 0 ? `| HI: ${point.instrumentHeight.toFixed(3)}m` : ''}
                             </div>
                         </div>
                         <div>
@@ -1150,12 +1297,12 @@
                 return;
             }
 
-            let csv = 'Nombre,Descripcion,Latitud,Longitud,Altura,Calidad,Satelites,HDOP,Precision_cm,Datum,Fecha\n';
+            let csv = 'Nombre,Descripcion,Latitud,Longitud,Altura,Alt_GPS,Altura_Instrumento,Calidad,Satelites,HDOP,Precision_cm,Datum,Fecha\n';
             app.points.forEach(point => {
-                csv += `"${point.name}","${point.description || ''}",${point.lat},${point.lon},${point.alt},"${point.qualityText}",${point.satellites},${point.hdop},${point.accuracy},"${point.datum}","${point.timestamp}"\n`;
+                csv += `"${point.name}","${point.description || ''}",${point.lat},${point.lon},${point.alt},${point.altRaw || point.alt},${point.instrumentHeight || 0},"${point.qualityText}",${point.satellites},${point.hdop},${point.accuracy},"${point.datum}","${point.timestamp}"\n`;
             });
 
-            downloadFile(csv, `puntos_${app.currentProject ? app.currentProject.name : 'export'}_${Date.now()}.csv`, 'text/csv');
+            downloadFile(csv, `puntos_gnssai_${app.currentProject ? app.currentProject.name : 'export'}_${Date.now()}.csv`, 'text/csv');
             alert('✅ Puntos exportados');
         }
 
@@ -1187,6 +1334,23 @@
                 alert(`✅ ${app.stakePoints.length} puntos cargados`);
             };
             reader.readAsText(file);
+        }
+
+        function useCollectedPoints() {
+            if (app.points.length === 0) {
+                alert('⚠️ No hay puntos tomados para usar en replanteo');
+                return;
+            }
+
+            app.stakePoints = app.points.map(p => ({
+                name: p.name,
+                lat: p.lat,
+                lon: p.lon,
+                alt: p.alt
+            }));
+
+            displayStakePoints();
+            alert(`✅ ${app.stakePoints.length} puntos cargados desde puntos tomados`);
         }
 
         function displayStakePoints() {
@@ -1224,6 +1388,11 @@
             }
         }
 
+        function stopStakeout() {
+            currentStakePoint = null;
+            document.getElementById('stakeoutCard').style.display = 'none';
+        }
+
         function updateStakeoutNavigation(data) {
             if (!currentStakePoint || !data.position) return;
 
@@ -1232,9 +1401,14 @@
             const azimuth = calculateAzimuth(pos.lat, pos.lon, currentStakePoint.lat, currentStakePoint.lon);
             const deltaH = currentStakePoint.alt - pos.alt;
 
+            // Calculate N/E deltas
+            const {deltaN, deltaE} = calculateNEDeltas(pos.lat, pos.lon, currentStakePoint.lat, currentStakePoint.lon);
+
             document.getElementById('stakeDistance').textContent = distance.toFixed(3) + ' m';
             document.getElementById('stakeAzimuth').textContent = azimuth.toFixed(1) + '°';
             document.getElementById('stakeHeight').textContent = (deltaH >= 0 ? '+' : '') + deltaH.toFixed(3) + ' m';
+            document.getElementById('stakeNorth').textContent = (deltaN >= 0 ? '+' : '') + deltaN.toFixed(3) + ' m';
+            document.getElementById('stakeEast').textContent = (deltaE >= 0 ? '+' : '') + deltaE.toFixed(3) + ' m';
         }
 
         // TILT
@@ -1245,7 +1419,11 @@
             if (app.tiltEnabled) {
                 btn.textContent = '✅ TILT ACTIVADO';
                 btn.className = 'btn btn-success';
-                alert('✅ TILT activado - Puedes medir con el jalón inclinado');
+                if (!app.imuData) {
+                    alert('⚠️ No hay datos del IMU. Asegúrate de dar permisos de sensores.');
+                } else {
+                    alert('✅ TILT activado - Puedes medir con el jalón inclinado');
+                }
             } else {
                 btn.textContent = '⬜ ACTIVAR TILT';
                 btn.className = 'btn btn-warning';
@@ -1253,16 +1431,30 @@
         }
 
         function updateTiltDisplay(tilt) {
-            document.getElementById('tiltPitch').textContent = (tilt.pitch || 0).toFixed(1) + '°';
-            document.getElementById('tiltRoll').textContent = (tilt.roll || 0).toFixed(1) + '°';
-            document.getElementById('tiltHeading').textContent = (tilt.heading || 0).toFixed(1) + '°';
+            const pitch = tilt.pitch || 0;
+            const roll = tilt.roll || 0;
+            const heading = tilt.heading || 0;
+
+            document.getElementById('tiltPitch').textContent = pitch.toFixed(1) + '°';
+            document.getElementById('tiltRoll').textContent = roll.toFixed(1) + '°';
+            document.getElementById('tiltHeading').textContent = heading.toFixed(1) + '°';
 
             // Move bubble based on tilt
             const bubble = document.getElementById('tiltBubble');
             const maxTilt = 30; // degrees
-            const offsetX = Math.max(-80, Math.min(80, (tilt.roll / maxTilt) * 80));
-            const offsetY = Math.max(-80, Math.min(80, (tilt.pitch / maxTilt) * 80));
+            const offsetX = Math.max(-80, Math.min(80, (roll / maxTilt) * 80));
+            const offsetY = Math.max(-80, Math.min(80, (pitch / maxTilt) * 80));
             bubble.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+
+            // Change color based on tilt amount
+            const tiltAmount = Math.sqrt(pitch*pitch + roll*roll);
+            if (tiltAmount < 5) {
+                bubble.style.background = '#4CAF50'; // Green - level
+            } else if (tiltAmount < 15) {
+                bubble.style.background = '#FFC107'; // Yellow - slight tilt
+            } else {
+                bubble.style.background = '#F44336'; // Red - significant tilt
+            }
         }
 
         // PPP COMMANDS
@@ -1278,7 +1470,7 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        facingMode: 'environment',
+                        facingMode: { ideal: 'environment' },
                         width: { ideal: 1920 },
                         height: { ideal: 1080 }
                     }
@@ -1287,27 +1479,48 @@
                 const video = document.getElementById('cameraPreview');
                 video.srcObject = stream;
                 app.cameraStream = stream;
+                alert('✅ Cámara iniciada');
 
             } catch (error) {
-                alert('❌ No se pudo acceder a la cámara: ' + error.message);
+                alert('❌ No se pudo acceder a la cámara: ' + error.message + '\n\nAsegúrate de dar permisos de cámara al navegador.');
+            }
+        }
+
+        function stopCamera() {
+            if (app.cameraStream) {
+                app.cameraStream.getTracks().forEach(track => track.stop());
+                const video = document.getElementById('cameraPreview');
+                video.srcObject = null;
+                app.cameraStream = null;
+                alert('✅ Cámara detenida');
             }
         }
 
         async function takePhoto() {
             if (!app.cameraStream) {
-                alert('Inicia la cámara primero');
+                alert('⚠️ Inicia la cámara primero');
+                await startCamera();
+                // Wait a bit for camera to initialize
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            const video = document.getElementById('cameraPreview');
+
+            if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+                alert('⚠️ La cámara aún se está inicializando. Intenta de nuevo en un momento.');
                 return;
             }
 
             if (!app.gpsData || !app.gpsData.position) {
-                alert('⚠️ No hay datos GPS. La foto se guardará sin geolocalización');
+                if (!confirm('⚠️ No hay datos GPS. ¿Continuar sin geolocalización?')) {
+                    return;
+                }
             }
 
-            const video = document.getElementById('cameraPreview');
             const canvas = document.getElementById('photoCanvas');
 
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth || 1920;
+            canvas.height = video.videoHeight || 1080;
 
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0);
@@ -1330,7 +1543,7 @@
                     GPSAltitude: app.gpsData ? app.gpsData.position.alt : null,
                     GPSDatum: app.config.datum,
                     DateTime: new Date().toISOString(),
-                    Make: 'GPS Professional App',
+                    Make: 'GNSS.AI',
                     Model: navigator.userAgent
                 }
             };
@@ -1410,7 +1623,7 @@
             };
 
             const json = JSON.stringify(exportData, null, 2);
-            downloadFile(json, `fotos_gps_${Date.now()}.json`, 'application/json');
+            downloadFile(json, `fotos_gnssai_${Date.now()}.json`, 'application/json');
 
             alert(`✅ ${app.photos.length} fotos exportadas con metadatos EXIF completos`);
         }
@@ -1442,6 +1655,20 @@
             const θ = Math.atan2(y, x);
 
             return (θ * 180 / Math.PI + 360) % 360;
+        }
+
+        function calculateNEDeltas(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Earth radius in meters
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            // Approximate N/E for small distances
+            const deltaN = R * Δφ;
+            const deltaE = R * Δλ * Math.cos(φ1);
+
+            return {deltaN, deltaE};
         }
 
         function downloadFile(content, filename, mimeType) {
