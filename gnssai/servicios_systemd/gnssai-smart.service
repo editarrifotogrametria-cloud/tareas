@@ -1,0 +1,25 @@
+[Unit]
+Description=GNSS.AI Smart Processor - Procesa NMEA/RTCM y actualiza JSON
+After=network.target bluetooth.target
+Wants=bluetooth.target
+
+[Service]
+Type=simple
+User=gnssai2
+Group=gnssai2
+WorkingDirectory=/home/gnssai2/gnssai
+ExecStart=/home/gnssai2/gnssai/run_smart_processor.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Variables de entorno
+Environment="PYTHONUNBUFFERED=1"
+
+# Recursos
+Nice=0
+CPUWeight=100
+
+[Install]
+WantedBy=multi-user.target

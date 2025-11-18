@@ -51,18 +51,25 @@ sudo reboot
 
 ## 🚀 Iniciar el Sistema
 
-Después del reinicio, inicia el servidor GPS Professional:
+Después del reinicio, inicia los servicios:
 
 ```bash
-cd ~/gnssai
-./start_gps_professional.sh
+# Iniciar el procesador inteligente
+sudo systemctl start gnssai-smart
+
+# Iniciar el dashboard web
+sudo systemctl start gnssai-dashboard
+
+# Iniciar Bluetooth SPP (opcional)
+sudo systemctl start bt-gps-spp
 ```
 
 O de forma manual:
 
 ```bash
 cd ~/gnssai
-python3 gps_server.py
+./run_smart_processor.sh &
+./start_dashboard.sh
 ```
 
 ## 🌐 Acceder a la Interfaz Web
@@ -101,74 +108,38 @@ Este script:
 
 ## 🔄 Inicio Automático (Opcional)
 
-### GPS Professional Server
+Los servicios systemd ya están incluidos en el directorio `servicios_systemd/`. El script de instalación los configura automáticamente.
+
+### Habilitar servicios al inicio
 
 ```bash
-sudo nano /etc/systemd/system/gps-professional.service
+# Smart Processor (Procesador NMEA/RTCM)
+sudo systemctl enable gnssai-smart
+sudo systemctl start gnssai-smart
+
+# Dashboard Web (Flask v2.3)
+sudo systemctl enable gnssai-dashboard
+sudo systemctl start gnssai-dashboard
+
+# Bluetooth SPP (opcional)
+sudo systemctl enable bt-gps-spp
+sudo systemctl start bt-gps-spp
 ```
 
-Contenido:
-
-```ini
-[Unit]
-Description=GPS Professional Server - GNSS.AI
-After=network.target
-
-[Service]
-Type=simple
-User=gnssai2
-WorkingDirectory=/home/gnssai2/gnssai
-ExecStart=/usr/bin/python3 /home/gnssai2/gnssai/gps_server.py
-Restart=always
-RestartSec=10
-Environment="GPS_PORT=/dev/serial0"
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Activar:
+### Verificar estado de los servicios
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable gps-professional
-sudo systemctl start gps-professional
-sudo systemctl status gps-professional
+sudo systemctl status gnssai-smart
+sudo systemctl status gnssai-dashboard
+sudo systemctl status bt-gps-spp
 ```
 
-### Smart Processor (Procesador de Datos GNSS)
+### Servicios disponibles
 
-```bash
-sudo nano /etc/systemd/system/gnss-processor.service
-```
-
-Contenido:
-
-```ini
-[Unit]
-Description=GNSS Smart Processor
-After=network.target
-
-[Service]
-Type=simple
-User=gnssai2
-WorkingDirectory=/home/gnssai2/gnssai
-ExecStart=/usr/bin/python3 /home/gnssai2/gnssai/smart_processor.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Activar:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable gnss-processor
-sudo systemctl start gnss-processor
-sudo systemctl status gnss-processor
-```
+Los archivos de servicio se encuentran en:
+- `~/gnssai/servicios_systemd/gnssai-smart.service` - Procesador inteligente
+- `~/gnssai/servicios_systemd/gnssai-dashboard.service` - Dashboard web
+- `~/gnssai/servicios_systemd/bt-gps-spp.service` - Canal Bluetooth SPP
 
 ## 🧪 Verificar Funcionamiento
 
@@ -190,40 +161,44 @@ cat /dev/serial0
 ### 3. Verificar servicios
 
 ```bash
-sudo systemctl status gps-professional
-sudo systemctl status gnss-processor
+sudo systemctl status gnssai-smart
+sudo systemctl status gnssai-dashboard
+sudo systemctl status bt-gps-spp
 ```
 
 ### 4. Ver logs
 
 ```bash
-journalctl -u gps-professional -f
-journalctl -u gnss-processor -f
+journalctl -u gnssai-smart -f
+journalctl -u gnssai-dashboard -f
+journalctl -u bt-gps-spp -f
 ```
 
 ## 📊 Estructura de Archivos en la Pi
 
 ```
 /home/gnssai2/gnssai/
-├── dashboard_server.py          # Servidor Dashboard
-├── gps_server.py                # Servidor GPS Professional ⭐
-├── gnssai_collector.py          # Colector de datos
-├── smart_processor.py           # Procesador inteligente ⭐
-├── start_dashboard.sh           # Script inicio Dashboard
-├── start_gps_professional.sh    # Script inicio GPS Professional
-├── config_com3.sh               # Configuración COM3 (Windows)
-├── .env                         # Variables de entorno
+│
+├── smart_processor.py           # Procesa NMEA/RTCM y actualiza JSON ⭐
+├── run_smart_processor.sh       # Lanza smart_processor con su venv ⭐
+├── dashboard_server.py          # Dashboard Flask (v2.3) ⭐
+├── start_dashboard.sh           # Lanza el dashboard web
+├── .venv/                       # Entorno virtual de Python
+│
 ├── templates/
-│   └── index.html              # Interfaz web Dashboard
-├── static/
+│   └── index.html              # Interfaz web (se genera automáticamente)
+│
+├── static/                     # Archivos estáticos (CSS, JS)
 │   ├── css/
-│   │   ├── chunk-vendors.d93e9d9a.css
-│   │   └── index.8349ed33.css
 │   └── js/
-│       ├── chunk-common.22a6f926.js
-│       ├── chunk-vendors.31517009.js
-│       └── index.0bca27f0.js
-└── README.md                    # Documentación general
+│
+├── servicios_systemd/          # Servicios systemd ⭐
+│   ├── gnssai-smart.service        # Servicio para smart_processor
+│   ├── bt-gps-spp.service          # Servicio Bluetooth SPP
+│   └── gnssai-dashboard.service    # Servicio para dashboard
+│
+├── .env                        # Variables de entorno
+└── README.md                   # Documentación general
 ```
 
 ## 🐛 Solución de Problemas
@@ -276,7 +251,7 @@ socketio.run(app, host="0.0.0.0", port=8080, ...)  # Cambiar 5000 a 8080
 
 1. Verificar que smart_processor.py NO esté corriendo (bloquea el puerto):
 ```bash
-sudo systemctl stop gnss-processor
+sudo systemctl stop gnssai-smart
 ```
 
 2. Verificar puerto en uso:
@@ -351,12 +326,15 @@ sudo ufw enable
 ## 📞 Soporte
 
 Para más información:
-- Revisa los logs: `journalctl -u gps-professional -f`
+- Revisa los logs:
+  - `journalctl -u gnssai-smart -f`
+  - `journalctl -u gnssai-dashboard -f`
+  - `journalctl -u bt-gps-spp -f`
 - Consulta el README.md en `~/gnssai/`
 - Verifica el manual ComNav K222 en el repo
 
 ---
 
-**Versión**: 1.0
-**Última actualización**: 2025-01-18
+**Versión**: 2.0
+**Última actualización**: 2025-11-18
 **Compatible con**: Raspberry Pi Zero 2 W, ComNav K222

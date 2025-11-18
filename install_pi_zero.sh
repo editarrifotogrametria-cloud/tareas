@@ -131,62 +131,48 @@ echo ""
 
 # Step 8: Create systemd services
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}[8/8] ¿Crear servicios systemd? (s/n)${NC}"
+echo -e "${BLUE}[8/8] ¿Instalar servicios systemd? (s/n)${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 read -p "Respuesta: " -n 1 -r
 echo
 
 if [[ $REPLY =~ ^[Ss]$ ]]; then
-    # GPS Professional Service
-    sudo tee /etc/systemd/system/gps-professional.service > /dev/null <<EOF
-[Unit]
-Description=GPS Professional Server - GNSS.AI
-After=network.target
+    # Instalar servicios desde gnssai/servicios_systemd/
+    if [ -d "$GNSSAI_DIR/servicios_systemd" ]; then
+        # Reemplazar USER en los archivos de servicio
+        for service_file in "$GNSSAI_DIR/servicios_systemd/"*.service; do
+            if [ -f "$service_file" ]; then
+                service_name=$(basename "$service_file")
+                # Copiar y reemplazar el usuario gnssai2 por el usuario actual
+                sed "s/User=gnssai2/User=$CURRENT_USER/g; s/Group=gnssai2/Group=$CURRENT_USER/g; s|/home/gnssai2|$HOME_DIR|g" "$service_file" | sudo tee "/etc/systemd/system/$service_name" > /dev/null
+                echo -e "${GREEN}✅ Instalado: $service_name${NC}"
+            fi
+        done
 
-[Service]
-Type=simple
-User=$CURRENT_USER
-WorkingDirectory=$GNSSAI_DIR
-ExecStart=/usr/bin/python3 $GNSSAI_DIR/gps_server.py
-Restart=always
-RestartSec=10
-Environment="GPS_PORT=/dev/serial0"
+        sudo systemctl daemon-reload
 
-[Install]
-WantedBy=multi-user.target
-EOF
-
-    # GNSS Processor Service
-    sudo tee /etc/systemd/system/gnss-processor.service > /dev/null <<EOF
-[Unit]
-Description=GNSS Smart Processor
-After=network.target
-
-[Service]
-Type=simple
-User=$CURRENT_USER
-WorkingDirectory=$GNSSAI_DIR
-ExecStart=/usr/bin/python3 $GNSSAI_DIR/smart_processor.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-    sudo systemctl daemon-reload
-
-    echo -e "${GREEN}✅ Servicios systemd creados${NC}"
-    echo ""
-    echo -e "${YELLOW}Para habilitar los servicios al inicio:${NC}"
-    echo -e "${YELLOW}  sudo systemctl enable gps-professional${NC}"
-    echo -e "${YELLOW}  sudo systemctl enable gnss-processor${NC}"
-    echo ""
-    echo -e "${YELLOW}Para iniciar los servicios ahora:${NC}"
-    echo -e "${YELLOW}  sudo systemctl start gps-professional${NC}"
-    echo -e "${YELLOW}  sudo systemctl start gnss-processor${NC}"
+        echo ""
+        echo -e "${GREEN}✅ Servicios systemd instalados${NC}"
+        echo ""
+        echo -e "${YELLOW}Servicios disponibles:${NC}"
+        echo -e "${YELLOW}  • gnssai-smart.service      - Procesador NMEA/RTCM${NC}"
+        echo -e "${YELLOW}  • gnssai-dashboard.service  - Dashboard web${NC}"
+        echo -e "${YELLOW}  • bt-gps-spp.service        - Bluetooth SPP${NC}"
+        echo ""
+        echo -e "${YELLOW}Para habilitar al inicio:${NC}"
+        echo -e "${YELLOW}  sudo systemctl enable gnssai-smart${NC}"
+        echo -e "${YELLOW}  sudo systemctl enable gnssai-dashboard${NC}"
+        echo -e "${YELLOW}  sudo systemctl enable bt-gps-spp${NC}"
+        echo ""
+        echo -e "${YELLOW}Para iniciar ahora:${NC}"
+        echo -e "${YELLOW}  sudo systemctl start gnssai-smart${NC}"
+        echo -e "${YELLOW}  sudo systemctl start gnssai-dashboard${NC}"
+        echo -e "${YELLOW}  sudo systemctl start bt-gps-spp${NC}"
+    else
+        echo -e "${RED}❌ No se encontró el directorio servicios_systemd/${NC}"
+    fi
 else
-    echo -e "${YELLOW}ℹ️  Servicios systemd no creados${NC}"
+    echo -e "${YELLOW}ℹ️  Servicios systemd no instalados${NC}"
 fi
 
 echo ""
@@ -199,20 +185,24 @@ echo ""
 echo -e "${YELLOW}1. Reiniciar la Pi para aplicar cambios de serial:${NC}"
 echo -e "   ${BLUE}sudo reboot${NC}"
 echo ""
-echo -e "${YELLOW}2. Después del reinicio, iniciar manualmente:${NC}"
+echo -e "${YELLOW}2. Después del reinicio, iniciar servicios:${NC}"
+echo -e "   ${BLUE}sudo systemctl start gnssai-smart${NC}"
+echo -e "   ${BLUE}sudo systemctl start gnssai-dashboard${NC}"
+echo -e "   ${BLUE}sudo systemctl start bt-gps-spp${NC}"
+echo ""
+echo -e "${YELLOW}3. O iniciar manualmente:${NC}"
 echo -e "   ${BLUE}cd ~/gnssai${NC}"
-echo -e "   ${BLUE}./start_gps_professional.sh${NC}"
+echo -e "   ${BLUE}./run_smart_processor.sh &${NC}"
+echo -e "   ${BLUE}./start_dashboard.sh${NC}"
 echo ""
-echo -e "${YELLOW}3. O iniciar servicios systemd:${NC}"
-echo -e "   ${BLUE}sudo systemctl start gps-professional${NC}"
-echo -e "   ${BLUE}sudo systemctl start gnss-processor${NC}"
-echo ""
-echo -e "${YELLOW}4. Acceder desde el navegador:${NC}"
+echo -e "${YELLOW}4. Acceder al dashboard desde el navegador:${NC}"
 echo -e "   ${BLUE}http://$(hostname).local:5000${NC}"
 echo -e "   ${BLUE}http://$(hostname -I | awk '{print $1}'):5000${NC}"
 echo ""
-echo -e "${YELLOW}5. Ver logs:${NC}"
-echo -e "   ${BLUE}journalctl -u gps-professional -f${NC}"
+echo -e "${YELLOW}5. Ver logs de los servicios:${NC}"
+echo -e "   ${BLUE}journalctl -u gnssai-smart -f${NC}"
+echo -e "   ${BLUE}journalctl -u gnssai-dashboard -f${NC}"
+echo -e "   ${BLUE}journalctl -u bt-gps-spp -f${NC}"
 echo ""
 echo -e "${GREEN}🎉 Disfruta de GNSS.AI!${NC}"
 echo ""

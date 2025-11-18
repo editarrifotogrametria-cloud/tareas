@@ -1,0 +1,28 @@
+[Unit]
+Description=Bluetooth GPS SPP Server - Canal RFCOMM para datos GPS
+After=bluetooth.target
+Requires=bluetooth.target
+
+[Service]
+Type=forking
+User=root
+Group=root
+
+# Configurar Bluetooth como discoverable
+ExecStartPre=/usr/bin/bluetoothctl discoverable on
+ExecStartPre=/usr/bin/bluetoothctl pairable on
+
+# Crear canal RFCOMM en /dev/rfcomm0 (canal 1)
+# Este comando escucha en el canal SPP y reenvía datos del GPS
+ExecStart=/usr/bin/rfcomm watch rfcomm0 1 /bin/sh -c "cat /dev/ttyS0 > /dev/rfcomm0 & cat /dev/rfcomm0 > /dev/ttyS0"
+
+# Limpiar al detener
+ExecStop=/usr/bin/rfcomm release rfcomm0
+
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

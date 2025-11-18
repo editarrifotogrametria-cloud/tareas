@@ -1,0 +1,26 @@
+[Unit]
+Description=GNSS.AI Dashboard - Interfaz Web Flask (v2.3)
+After=network.target gnssai-smart.service
+Wants=gnssai-smart.service
+
+[Service]
+Type=simple
+User=gnssai2
+Group=gnssai2
+WorkingDirectory=/home/gnssai2/gnssai
+ExecStart=/home/gnssai2/gnssai/start_dashboard.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Variables de entorno
+Environment="PYTHONUNBUFFERED=1"
+Environment="FLASK_ENV=production"
+
+# Recursos
+Nice=0
+CPUWeight=100
+
+[Install]
+WantedBy=multi-user.target
