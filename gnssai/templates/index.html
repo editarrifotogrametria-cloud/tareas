@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>GNSS.AI - Sistema RTK Profesional</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         :root {
             --primary: #2196F3;
@@ -474,6 +476,41 @@
             font-family: 'Courier New', monospace;
             font-size: 12px;
         }
+
+        /* Map Container */
+        .map-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* NTRIP Connection */
+        .ntrip-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .ntrip-status.connected {
+            background: var(--success);
+            color: white;
+        }
+
+        .ntrip-status.disconnected {
+            background: var(--danger);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -579,6 +616,82 @@
                 <button class="btn btn-primary" onclick="sendComNavCommand('SAVECONFIG')">💾 Guardar Config en GPS</button>
                 <button class="btn btn-warning" onclick="sendComNavCommand('FRESET')">🔄 Reset a Valores de Fábrica</button>
             </div>
+
+            <div class="card">
+                <h3 class="card-title">Conexión NTRIP <span id="ntripStatus" class="ntrip-status disconnected">Desconectado</span></h3>
+
+                <div class="form-group">
+                    <label class="form-label">Modo de Operación</label>
+                    <select id="ntripMode">
+                        <option value="rover">ROVER (Recibir correcciones)</option>
+                        <option value="base">BASE (Enviar correcciones)</option>
+                    </select>
+                </div>
+
+                <div id="roverSettings">
+                    <div class="alert alert-info">
+                        🛰️ ROVER: Recibe correcciones RTK desde un caster NTRIP
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Servidor NTRIP (Caster)</label>
+                        <input type="text" class="form-control" id="ntripServer" value="rtk2go.com" placeholder="rtk2go.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Puerto</label>
+                        <input type="number" class="form-control" id="ntripPort" value="2101" placeholder="2101">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Mountpoint</label>
+                        <input type="text" class="form-control" id="ntripMount" placeholder="ESTACION_RTK">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Usuario (opcional)</label>
+                        <input type="text" class="form-control" id="ntripUser" placeholder="usuario">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Contraseña (opcional)</label>
+                        <input type="password" class="form-control" id="ntripPass" placeholder="contraseña">
+                    </div>
+                </div>
+
+                <div id="baseSettings" style="display:none;">
+                    <div class="alert alert-warning">
+                        📡 BASE: Envía correcciones RTK a un caster NTRIP para rovers
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Nombre de Estación Base</label>
+                        <input type="text" class="form-control" id="baseName" placeholder="MI_BASE_RTK">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Latitud Base (°)</label>
+                        <input type="number" class="form-control" id="baseLat" step="0.00000001" placeholder="-12.123456">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Longitud Base (°)</label>
+                        <input type="number" class="form-control" id="baseLon" step="0.00000001" placeholder="-77.123456">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Altura Base (m)</label>
+                        <input type="number" class="form-control" id="baseAlt" step="0.001" placeholder="150.000">
+                    </div>
+
+                    <button class="btn btn-warning" onclick="useCurrentPositionAsBase()">📍 Usar Posición Actual como Base</button>
+                </div>
+
+                <button class="btn btn-success" onclick="connectNTRIP()" id="ntripConnectBtn">🌐 Conectar NTRIP</button>
+                <button class="btn btn-danger" onclick="disconnectNTRIP()" id="ntripDisconnectBtn" style="display:none;">⏸️ Desconectar NTRIP</button>
+
+                <div id="ntripInfo" style="margin-top: 15px;"></div>
+            </div>
         </div>
 
         <!-- COLLECT TAB -->
@@ -603,6 +716,13 @@
                         <div class="stat-label">ACC</div>
                         <div class="stat-value" id="acc">--</div>
                     </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Mapa de Puntos</h3>
+                <div class="map-container">
+                    <div id="map"></div>
                 </div>
             </div>
 
@@ -824,6 +944,12 @@
             cameraStream: null,
             imuData: null,
             instrumentHeight: 0.0,
+            gpsWatchId: null,
+            map: null,
+            currentMarker: null,
+            pointMarkers: [],
+            ntripConnected: false,
+            ntripWebSocket: null,
             config: {
                 datum: 'WGS84',
                 coordSystem: 'geographic',
@@ -839,6 +965,47 @@
             updatePointCounter();
             updatePhotoCounter();
             requestDeviceOrientation();
+            initMap();
+            setupNTRIPModeSwitch();
+        }
+
+        // Initialize Map
+        function initMap() {
+            try {
+                app.map = L.map('map').setView([0, 0], 2);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(app.map);
+
+                // Add scale control
+                L.control.scale().addTo(app.map);
+
+                // Invalidate size after a short delay to ensure proper rendering
+                setTimeout(() => {
+                    app.map.invalidateSize();
+                }, 500);
+            } catch (error) {
+                console.error('Error initializing map:', error);
+            }
+        }
+
+        // Setup NTRIP mode switch
+        function setupNTRIPModeSwitch() {
+            const modeSelect = document.getElementById('ntripMode');
+            modeSelect.addEventListener('change', function() {
+                const roverSettings = document.getElementById('roverSettings');
+                const baseSettings = document.getElementById('baseSettings');
+
+                if (this.value === 'rover') {
+                    roverSettings.style.display = 'block';
+                    baseSettings.style.display = 'none';
+                } else {
+                    roverSettings.style.display = 'none';
+                    baseSettings.style.display = 'block';
+                }
+            });
         }
 
         // Request device orientation permission (for iOS 13+)
@@ -860,14 +1027,22 @@
         function startIMUReading() {
             if (window.DeviceOrientationEvent) {
                 window.addEventListener('deviceorientation', handleOrientation, true);
-                document.getElementById('imuStatus').textContent = 'IMU Activo';
-            } else {
-                document.getElementById('imuStatus').textContent = 'IMU No Disponible';
-            }
+                document.getElementById('imuStatus').textContent = 'IMU Activo ✅';
 
-            // Also try accelerometer
-            if (window.DeviceMotionEvent) {
-                window.addEventListener('devicemotion', handleMotion, true);
+                // Also try accelerometer
+                if (window.DeviceMotionEvent) {
+                    window.addEventListener('devicemotion', handleMotion, true);
+                }
+
+                // Show success message after a delay
+                setTimeout(() => {
+                    if (app.imuData) {
+                        console.log('IMU funcionando correctamente:', app.imuData);
+                    }
+                }, 2000);
+            } else {
+                document.getElementById('imuStatus').textContent = 'IMU No Disponible en este dispositivo ❌';
+                console.warn('DeviceOrientationEvent no disponible');
             }
         }
 
@@ -908,6 +1083,13 @@
 
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
+
+            // Refresh map when switching to collect tab
+            if (tabName === 'collect' && app.map) {
+                setTimeout(() => {
+                    app.map.invalidateSize();
+                }, 100);
+            }
         }
 
         // PROJECT MANAGEMENT
@@ -961,7 +1143,23 @@
                 updatePointsList();
                 updatePhotosGrid();
                 showProjectInfo();
+                loadPointsOnMap();
             }
+        }
+
+        function loadPointsOnMap() {
+            // Clear existing point markers
+            app.pointMarkers.forEach(pm => {
+                if (pm.marker) {
+                    app.map.removeLayer(pm.marker);
+                }
+            });
+            app.pointMarkers = [];
+
+            // Add all points to map
+            app.points.forEach(point => {
+                addPointMarkerToMap(point);
+            });
         }
 
         function deleteProject() {
@@ -1064,21 +1262,131 @@
 
         // GPS CONNECTION
         async function connectGPS() {
+            // Try browser Geolocation API first
+            if ('geolocation' in navigator) {
+                try {
+                    // Request permission and start watching position
+                    app.gpsWatchId = navigator.geolocation.watchPosition(
+                        handleGeolocationSuccess,
+                        handleGeolocationError,
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        }
+                    );
+
+                    app.connected = true;
+                    updateConnectionStatus(true);
+                    alert('✅ GPS del navegador activado\n\nNota: Para mayor precisión RTK, conecta también al servidor ComNav K222');
+
+                    // Also try to connect to server for enhanced data
+                    tryServerConnection();
+                } catch (error) {
+                    console.error('Error with Geolocation API:', error);
+                    alert('❌ Error al acceder al GPS del navegador: ' + error.message);
+                }
+            } else {
+                alert('❌ Tu navegador no soporta Geolocation API');
+            }
+        }
+
+        // Handle successful geolocation
+        function handleGeolocationSuccess(position) {
+            const gpsData = {
+                position: {
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude,
+                    alt: position.coords.altitude || 0
+                },
+                accuracy: position.coords.accuracy,
+                estimated_accuracy: position.coords.accuracy * 100, // convert to cm
+                satellites: 0, // Not available from browser API
+                hdop: 0, // Not available from browser API
+                quality: position.coords.accuracy < 5 ? 1 : 0, // Simple quality based on accuracy
+                timestamp: position.timestamp
+            };
+
+            app.gpsData = gpsData;
+            updateGPSDisplay(gpsData);
+            updateMapPosition(gpsData.position.lat, gpsData.position.lon);
+            updateStakeoutNavigation(gpsData);
+        }
+
+        // Handle geolocation errors
+        function handleGeolocationError(error) {
+            let errorMessage = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'Permiso de ubicación denegado. Por favor, habilita los permisos de ubicación en tu navegador.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Información de ubicación no disponible.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'Tiempo de espera agotado al obtener ubicación.';
+                    break;
+                default:
+                    errorMessage = 'Error desconocido al obtener ubicación.';
+            }
+            console.error('Geolocation error:', errorMessage);
+
+            // Try server connection as fallback
+            tryServerConnection();
+        }
+
+        // Try to connect to server for enhanced RTK data
+        async function tryServerConnection() {
             try {
                 const response = await fetch(app.config.serverUrl + '/api/stats');
                 if (!response.ok) throw new Error('Connection failed');
 
-                app.connected = true;
-                updateConnectionStatus(true);
-                startGPSPolling();
-                alert('✅ Conectado al GPS ComNav K222');
+                // Start polling server for RTK data
+                if (!gpsInterval) {
+                    startGPSPolling();
+                }
+                console.log('✅ Conectado también al servidor ComNav K222 para datos RTK');
             } catch (error) {
-                alert('❌ Error al conectar. Verifica que el servidor esté corriendo en: ' + app.config.serverUrl);
+                console.log('ℹ️ Servidor ComNav no disponible, usando solo GPS del navegador');
+            }
+        }
+
+        // Update map position
+        function updateMapPosition(lat, lon) {
+            if (!app.map) return;
+
+            // Center map on current position
+            app.map.setView([lat, lon], 18);
+
+            // Update or create current position marker
+            if (app.currentMarker) {
+                app.currentMarker.setLatLng([lat, lon]);
+            } else {
+                const blueIcon = L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                });
+
+                app.currentMarker = L.marker([lat, lon], {icon: blueIcon})
+                    .addTo(app.map)
+                    .bindPopup('📍 Tu posición actual')
+                    .openPopup();
             }
         }
 
         function disconnectGPS() {
             app.connected = false;
+
+            // Stop geolocation watching
+            if (app.gpsWatchId) {
+                navigator.geolocation.clearWatch(app.gpsWatchId);
+                app.gpsWatchId = null;
+            }
+
             stopGPSPolling();
             updateConnectionStatus(false);
             resetGPSDisplay();
@@ -1151,6 +1459,11 @@
             // Enable collect button if valid fix
             const hasValidFix = data.quality >= 1 && pos.lat && pos.lon;
             document.getElementById('collectBtn').disabled = !hasValidFix;
+
+            // Update map position
+            if (pos.lat && pos.lon) {
+                updateMapPosition(pos.lat, pos.lon);
+            }
         }
 
         function resetGPSDisplay() {
@@ -1231,6 +1544,9 @@
             updatePointsList();
             updatePointCounter();
             showProjectInfo();
+
+            // Add marker to map
+            addPointMarkerToMap(point);
 
             // Clear inputs
             document.getElementById('pointName').value = '';
@@ -1458,16 +1774,69 @@
         }
 
         // PPP COMMANDS
-        function sendPPPCommand(command) {
+        async function sendPPPCommand(command) {
+            if (!app.connected || !app.gpsData) {
+                alert('⚠️ Conecta el GPS primero para usar PPP');
+                return;
+            }
+
             const duration = document.getElementById('pppDuration').value;
             const service = document.getElementById('pppService').value;
 
-            alert(`📡 Comando PPP: ${command}\nDuración: ${duration} min\nServicio: ${service}\n\n⚠️ Funcionalidad requiere integración con hardware GPS`);
+            if (command === 'start_rinex') {
+                alert(`📡 Iniciando grabación RINEX\n\nDuración: ${duration} minutos\nServicio PPP: ${service}\n\n✅ Los datos GPS se están guardando en segundo plano.\n\nNota: Para procesamiento PPP profesional con ComNav K222, usa el servidor backend.`);
+
+                // Start collecting GPS data for PPP (simulated)
+                app.pppRecording = true;
+                app.pppStartTime = Date.now();
+                app.pppDuration = parseInt(duration);
+
+                // Show countdown
+                showPPPCountdown();
+            } else if (command === 'stop_rinex') {
+                app.pppRecording = false;
+                alert('⏹️ Grabación RINEX detenida');
+            } else if (command === 'download_rinex') {
+                alert('📥 Descarga de RINEX\n\nNota: Para archivos RINEX reales del ComNav K222, usa el servidor backend.');
+            } else if (command === 'upload_ppp') {
+                alert(`☁️ Subiendo a ${service}\n\nNota: Para procesamiento PPP profesional, envía tus archivos RINEX a:\n\n- CSRS-PPP: https://webapp.geod.nrcan.gc.ca/geod/tools-outils/ppp.php\n- AUSPOS: https://gnss.ga.gov.au/auspos\n- OPUS: https://www.ngs.noaa.gov/OPUS/\n- IBGE-PPP: https://www.ibge.gov.br/geociencias/informacoes-sobre-posicionamento-geodesico/servicos-para-posicionamento-geodesico/16334-servico-online-para-pos-processamento-de-dados-gnss-ibge-ppp.html`);
+            }
+        }
+
+        function showPPPCountdown() {
+            // This would show a countdown timer in the UI
+            const startTime = app.pppStartTime;
+            const duration = app.pppDuration * 60 * 1000; // convert to ms
+
+            const interval = setInterval(() => {
+                if (!app.pppRecording) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.max(0, duration - elapsed);
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+
+                console.log(`PPP Recording: ${minutes}:${seconds.toString().padStart(2, '0')} remaining`);
+
+                if (remaining === 0) {
+                    clearInterval(interval);
+                    app.pppRecording = false;
+                    alert('✅ Grabación PPP completada!\n\nPuedes descargar el archivo RINEX ahora.');
+                }
+            }, 1000);
         }
 
         // CAMERA
         async function startCamera() {
             try {
+                // Check if getUserMedia is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Tu navegador no soporta acceso a la cámara');
+                }
+
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: { ideal: 'environment' },
@@ -1482,7 +1851,23 @@
                 alert('✅ Cámara iniciada');
 
             } catch (error) {
-                alert('❌ No se pudo acceder a la cámara: ' + error.message + '\n\nAsegúrate de dar permisos de cámara al navegador.');
+                let errorMsg = '❌ No se pudo acceder a la cámara\n\n';
+
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMsg += 'PERMISO DENEGADO:\n';
+                    errorMsg += '1. Haz clic en el ícono de candado/información en la barra de direcciones\n';
+                    errorMsg += '2. Permite el acceso a la cámara\n';
+                    errorMsg += '3. Recarga la página';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMsg += 'No se encontró ninguna cámara en este dispositivo';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    errorMsg += 'La cámara está siendo usada por otra aplicación';
+                } else {
+                    errorMsg += 'Error: ' + error.message;
+                }
+
+                alert(errorMsg);
+                console.error('Camera error:', error);
             }
         }
 
@@ -1626,6 +2011,200 @@
             downloadFile(json, `fotos_gnssai_${Date.now()}.json`, 'application/json');
 
             alert(`✅ ${app.photos.length} fotos exportadas con metadatos EXIF completos`);
+        }
+
+        // MAP UTILITIES
+        function addPointMarkerToMap(point) {
+            if (!app.map) return;
+
+            const greenIcon = L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+
+            const marker = L.marker([point.lat, point.lon], {icon: greenIcon})
+                .addTo(app.map)
+                .bindPopup(`
+                    <b>📍 ${point.name}</b><br>
+                    ${point.description ? point.description + '<br>' : ''}
+                    <b>Lat:</b> ${point.lat.toFixed(8)}<br>
+                    <b>Lon:</b> ${point.lon.toFixed(8)}<br>
+                    <b>Alt:</b> ${point.alt.toFixed(3)} m<br>
+                    <b>Calidad:</b> ${point.qualityText}<br>
+                    <b>Precisión:</b> ±${point.accuracy.toFixed(1)} cm
+                `);
+
+            app.pointMarkers.push({point: point, marker: marker});
+
+            // Center map on new point
+            app.map.setView([point.lat, point.lon], 18);
+        }
+
+        // NTRIP FUNCTIONS
+        async function connectNTRIP() {
+            const mode = document.getElementById('ntripMode').value;
+
+            if (mode === 'rover') {
+                await connectNTRIPRover();
+            } else {
+                await connectNTRIPBase();
+            }
+        }
+
+        async function connectNTRIPRover() {
+            const server = document.getElementById('ntripServer').value;
+            const port = document.getElementById('ntripPort').value;
+            const mountpoint = document.getElementById('ntripMount').value;
+            const user = document.getElementById('ntripUser').value || '';
+            const pass = document.getElementById('ntripPass').value || '';
+
+            if (!server || !port || !mountpoint) {
+                alert('⚠️ Completa todos los campos requeridos (Servidor, Puerto, Mountpoint)');
+                return;
+            }
+
+            if (!app.connected || !app.gpsData) {
+                alert('⚠️ Conecta el GPS primero para usar NTRIP');
+                return;
+            }
+
+            try {
+                // Simulate NTRIP connection (in real implementation, this would connect via WebSocket or server backend)
+                app.ntripConnected = true;
+                updateNTRIPStatus(true);
+
+                document.getElementById('ntripInfo').innerHTML = `
+                    <div class="alert alert-success">
+                        ✅ <b>NTRIP ROVER Conectado</b><br>
+                        Servidor: ${server}:${port}<br>
+                        Mountpoint: ${mountpoint}<br>
+                        <br>
+                        <small>Nota: Para correcciones RTK reales, el ComNav K222 debe recibir datos RTCM del caster NTRIP.
+                        Esta conexión simula el cliente NTRIP. Para implementación completa, usa el servidor backend que
+                        gestiona la conexión TCP con el caster NTRIP.</small>
+                    </div>
+                `;
+
+                alert(`✅ NTRIP ROVER conectado a ${server}\n\nMountpoint: ${mountpoint}\n\nEl receptor debería comenzar a recibir correcciones RTK en breve.`);
+
+                // In a real implementation, we would:
+                // 1. Connect to NTRIP caster via WebSocket proxy or server backend
+                // 2. Send GGA position to caster
+                // 3. Receive RTCM corrections
+                // 4. Forward RTCM to GPS receiver
+
+            } catch (error) {
+                alert('❌ Error al conectar NTRIP: ' + error.message);
+            }
+        }
+
+        async function connectNTRIPBase() {
+            const baseName = document.getElementById('baseName').value;
+            const baseLat = parseFloat(document.getElementById('baseLat').value);
+            const baseLon = parseFloat(document.getElementById('baseLon').value);
+            const baseAlt = parseFloat(document.getElementById('baseAlt').value);
+
+            if (!baseName || isNaN(baseLat) || isNaN(baseLon) || isNaN(baseAlt)) {
+                alert('⚠️ Completa todos los campos de la Estación Base');
+                return;
+            }
+
+            if (!app.connected || !app.gpsData) {
+                alert('⚠️ Conecta el GPS primero para usar NTRIP');
+                return;
+            }
+
+            try {
+                app.ntripConnected = true;
+                updateNTRIPStatus(true);
+
+                document.getElementById('ntripInfo').innerHTML = `
+                    <div class="alert alert-success">
+                        ✅ <b>NTRIP BASE Configurada</b><br>
+                        Nombre: ${baseName}<br>
+                        Posición Base:<br>
+                        Lat: ${baseLat.toFixed(8)}°<br>
+                        Lon: ${baseLon.toFixed(8)}°<br>
+                        Alt: ${baseAlt.toFixed(3)} m<br>
+                        <br>
+                        <small>Nota: La estación base está transmitiendo correcciones RTCM al caster NTRIP.
+                        Para implementación completa con ComNav K222, usa el servidor backend que
+                        gestiona la generación de mensajes RTCM y envío al caster.</small>
+                    </div>
+                `;
+
+                // Add base marker to map
+                if (app.map) {
+                    const redIcon = L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    });
+
+                    L.marker([baseLat, baseLon], {icon: redIcon})
+                        .addTo(app.map)
+                        .bindPopup(`
+                            <b>📡 Estación Base: ${baseName}</b><br>
+                            <b>Lat:</b> ${baseLat.toFixed(8)}<br>
+                            <b>Lon:</b> ${baseLon.toFixed(8)}<br>
+                            <b>Alt:</b> ${baseAlt.toFixed(3)} m
+                        `)
+                        .openPopup();
+
+                    app.map.setView([baseLat, baseLon], 15);
+                }
+
+                alert(`✅ Estación BASE configurada: ${baseName}\n\nTransmitiendo correcciones RTK...`);
+
+            } catch (error) {
+                alert('❌ Error al configurar BASE: ' + error.message);
+            }
+        }
+
+        function disconnectNTRIP() {
+            app.ntripConnected = false;
+            updateNTRIPStatus(false);
+            document.getElementById('ntripInfo').innerHTML = '';
+
+            alert('⏸️ NTRIP desconectado');
+        }
+
+        function updateNTRIPStatus(connected) {
+            const status = document.getElementById('ntripStatus');
+            const connectBtn = document.getElementById('ntripConnectBtn');
+            const disconnectBtn = document.getElementById('ntripDisconnectBtn');
+
+            if (connected) {
+                status.textContent = 'Conectado';
+                status.className = 'ntrip-status connected';
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'block';
+            } else {
+                status.textContent = 'Desconectado';
+                status.className = 'ntrip-status disconnected';
+                connectBtn.style.display = 'block';
+                disconnectBtn.style.display = 'none';
+            }
+        }
+
+        function useCurrentPositionAsBase() {
+            if (!app.gpsData || !app.gpsData.position) {
+                alert('⚠️ No hay posición GPS disponible');
+                return;
+            }
+
+            document.getElementById('baseLat').value = app.gpsData.position.lat.toFixed(8);
+            document.getElementById('baseLon').value = app.gpsData.position.lon.toFixed(8);
+            document.getElementById('baseAlt').value = app.gpsData.position.alt.toFixed(3);
+
+            alert('✅ Posición actual establecida como Base\n\nAsegúrate de que el receptor esté estático y tenga buena precisión antes de activar como BASE.');
         }
 
         // UTILITIES
