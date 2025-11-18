@@ -20,8 +20,10 @@ class SimpleGNSSCollector:
         
         self.session = datetime.now().strftime('%Y%m%d_%H%M%S')
         self.csv_file = self.output_dir / f'session_{self.session}.csv'
-        
-        self.uart = serial.Serial('/dev/serial0', 115200, timeout=1)
+
+        # Configurar puerto: COM3 (Windows), /dev/ttyUSB2 (Linux), etc.
+        gps_port = os.getenv('GPS_PORT', '/dev/serial0')
+        self.uart = serial.Serial(gps_port, 115200, timeout=1)
         
         # Crear CSV
         with open(self.csv_file, 'w', newline='') as f:

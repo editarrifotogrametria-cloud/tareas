@@ -33,9 +33,10 @@ except ImportError:
 
 
 class SmartProcessor:
-    def __init__(self):
+    def __init__(self, port=None):
         # Configuración básica
-        self.uart_port = "/dev/serial0"
+        # Permite especificar puerto: COM3 (Windows), /dev/ttyUSB2 (Linux), etc.
+        self.uart_port = port or os.getenv('GPS_PORT', '/dev/serial0')
         self.uart_baud = 115200
         self.fifo_path = "/tmp/gnssai_smart"
         self.json_path = "/tmp/gnssai_dashboard_data.json"

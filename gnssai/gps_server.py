@@ -13,7 +13,7 @@ import json
 import time
 import threading
 from datetime import datetime
-from flask import Flask, jsonify, send_file, send_from_directory
+from flask import Flask, jsonify, send_file, send_from_directory, request
 from flask_socketio import SocketIO
 
 # ====================================================================
@@ -251,6 +251,43 @@ def api_stats():
         }
 
     return jsonify(data)
+
+@app.route("/api/comnav/command", methods=["POST"])
+def comnav_command():
+    """Send command to ComNav K222 device."""
+    try:
+        import serial
+        data = request.get_json()
+        command = data.get("command", "")
+
+        if not command:
+            return jsonify({"status": "error", "message": "No command provided"}), 400
+
+        # Get GPS port from environment or use default
+        gps_port = os.getenv('GPS_PORT', '/dev/serial0')
+
+        # Open serial connection
+        with serial.Serial(gps_port, 115200, timeout=2) as ser:
+            # Send command to ComNav device
+            cmd_str = f"{command}\r\n"
+            ser.write(cmd_str.encode())
+
+            # Wait for response
+            time.sleep(0.5)
+            response = ser.read(ser.in_waiting).decode('utf-8', errors='ignore')
+
+        return jsonify({
+            "status": "success",
+            "command": command,
+            "response": response,
+            "port": gps_port
+        })
+
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 @app.route("/static/<path:filename>")
 def static_files(filename):
