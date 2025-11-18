@@ -128,13 +128,34 @@
             padding: 20px;
             margin-bottom: 20px;
             backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 48px rgba(0,0,0,0.3);
+            border-color: rgba(33, 150, 243, 0.3);
         }
 
         .card-title {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             margin-bottom: 15px;
             color: var(--primary);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 2px;
         }
 
         /* Form Elements */
@@ -217,86 +238,172 @@
 
         /* GPS Display */
         .gps-display {
-            background: linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(25, 118, 210, 0.2));
-            border-radius: 12px;
-            padding: 20px;
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(25, 118, 210, 0.2));
+            border-radius: 16px;
+            padding: 25px;
             text-align: center;
             margin-bottom: 20px;
+            border: 2px solid rgba(33, 150, 243, 0.3);
+            box-shadow: 0 8px 32px rgba(33, 150, 243, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gps-display::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(33, 150, 243, 0.1) 0%, transparent 70%);
+            animation: pulse-bg 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-bg {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
         }
 
         .gps-quality {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 10px;
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 15px;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+            letter-spacing: 2px;
         }
 
         .gps-coords {
             font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.8;
+            font-size: 14px;
+            line-height: 2;
+            position: relative;
+            z-index: 1;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
         }
 
         .gps-stats {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            gap: 12px;
             margin-top: 15px;
+            position: relative;
+            z-index: 1;
         }
 
         .stat-box {
-            background: rgba(255,255,255,0.1);
-            padding: 10px;
-            border-radius: 8px;
+            background: rgba(255,255,255,0.15);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-box:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(33, 150, 243, 0.3);
         }
 
         .stat-label {
-            font-size: 11px;
-            opacity: 0.7;
+            font-size: 10px;
+            opacity: 0.8;
             margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
         }
 
         .stat-value {
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 20px;
+            font-weight: 900;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         /* Points List */
         .points-list {
-            max-height: 400px;
+            max-height: 450px;
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) rgba(255,255,255,0.1);
+        }
+
+        .points-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .points-list::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .points-list::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
         }
 
         .point-item {
-            background: rgba(255,255,255,0.1);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .point-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: linear-gradient(180deg, var(--primary), var(--primary-dark));
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .point-item:hover::before {
+            transform: scaleY(1);
         }
 
         .point-item:hover {
-            background: rgba(255,255,255,0.15);
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.1));
+            transform: translateX(5px);
+            box-shadow: 0 4px 16px rgba(33, 150, 243, 0.2);
         }
 
         .point-item.selected {
-            background: rgba(33, 150, 243, 0.3);
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.4), rgba(25, 118, 210, 0.3));
             border: 2px solid var(--primary);
+            box-shadow: 0 8px 24px rgba(33, 150, 243, 0.4);
         }
 
         .point-name {
-            font-weight: 600;
-            font-size: 16px;
-            margin-bottom: 5px;
+            font-weight: 700;
+            font-size: 17px;
+            margin-bottom: 6px;
+            color: var(--white);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .point-coords {
             font-size: 12px;
-            opacity: 0.8;
+            opacity: 0.9;
             font-family: 'Courier New', monospace;
+            line-height: 1.6;
         }
 
         .btn-small {
@@ -532,6 +639,7 @@
         <button class="nav-tab" onclick="switchTab('ppp')">🔧 PPP</button>
         <button class="nav-tab" onclick="switchTab('tilt')">📐 TILT</button>
         <button class="nav-tab" onclick="switchTab('camera')">📷 Cámara</button>
+        <button class="nav-tab" onclick="switchTab('console')">💻 Consola</button>
     </div>
 
     <!-- Content -->
@@ -928,6 +1036,96 @@
                 <button class="btn btn-primary" onclick="exportPhotos()">📥 Exportar Fotos</button>
             </div>
         </div>
+
+        <!-- CONSOLE TAB -->
+        <div id="console" class="tab-panel">
+            <div class="card">
+                <h3 class="card-title">Consola de Comandos ComNav</h3>
+
+                <div class="alert alert-warning">
+                    💻 Envía comandos ASCII directamente al receptor ComNav K222
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>Puerto Serial:</strong> 115200 baudios<br>
+                    <strong>Formato:</strong> Comandos ASCII terminados con \r\n<br>
+                    <strong>Estado:</strong> <span id="serialStatus">Desconectado</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Comando</label>
+                    <input type="text" class="form-control" id="consoleCommand" placeholder="Ej: SAVECONFIG" style="font-family: monospace;">
+                </div>
+
+                <button class="btn btn-success" onclick="sendSerialCommand()">📤 Enviar Comando</button>
+                <button class="btn btn-warning" onclick="clearConsoleOutput()">🗑️ Limpiar</button>
+
+                <div style="margin-top: 20px;">
+                    <h4 class="card-title">Comandos Rápidos</h4>
+
+                    <div class="ppp-commands">
+                        <div class="ppp-command">
+                            <span>SAVECONFIG - Guardar configuración</span>
+                            <button class="btn btn-small btn-success" onclick="quickCommand('SAVECONFIG')">💾</button>
+                        </div>
+                        <div class="ppp-command">
+                            <span>FRESET - Reset de fábrica</span>
+                            <button class="btn btn-small btn-danger" onclick="quickCommand('FRESET')">🔄</button>
+                        </div>
+                        <div class="ppp-command">
+                            <span>LOG COM1 GPGGA ONTIME 1</span>
+                            <button class="btn btn-small btn-primary" onclick="quickCommand('LOG COM1 GPGGA ONTIME 1')">📡</button>
+                        </div>
+                        <div class="ppp-command">
+                            <span>INTERFACEMODE COM2 AUTO AUTO ON</span>
+                            <button class="btn btn-small btn-primary" onclick="quickCommand('INTERFACEMODE COM2 AUTO AUTO ON')">🔧</button>
+                        </div>
+                        <div class="ppp-command">
+                            <span>RTKOBSMODE 3 - Modo RTK</span>
+                            <button class="btn btn-small btn-primary" onclick="quickCommand('RTKOBSMODE 3')">🛰️</button>
+                        </div>
+                        <div class="ppp-command">
+                            <span>FIX NONE - Reset posición fija</span>
+                            <button class="btn btn-small btn-warning" onclick="quickCommand('FIX NONE')">📍</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <h4 class="card-title">Salida de la Consola</h4>
+                    <div id="consoleOutput" style="background: #000; color: #0f0; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; min-height: 300px; max-height: 400px; overflow-y: auto; white-space: pre-wrap;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Referencia de Comandos ComNav</h3>
+                <div style="font-family: monospace; font-size: 12px; line-height: 1.8;">
+                    <strong>Comandos de Configuración:</strong><br>
+                    • SAVECONFIG - Guarda configuración en memoria no volátil<br>
+                    • FRESET - Resetea a valores de fábrica (115200 baud)<br>
+                    • FIX NONE - Reinicia posición fija<br>
+                    <br>
+                    <strong>Comandos NTRIP/RTK:</strong><br>
+                    • INTERFACEMODE COM2 AUTO AUTO ON - Habilita auto-detección RTCM<br>
+                    • LOG COM1 GPGGA ONTIME 0.2 0 NOHOLD - Output GPGGA cada 0.2s<br>
+                    • RTKOBSMODE 3 - Establece modo de observación RTK<br>
+                    • RTKQUALITY NORMAL - Calidad RTK normal<br>
+                    <br>
+                    <strong>Comandos de Logs RTCM:</strong><br>
+                    • LOG COM1 RTCM1005B ONTIME 10 - MSM station coordinates<br>
+                    • LOG COM1 RTCM1004B ONTIME 0.2 - GPS observations<br>
+                    • LOG COM1 RTCM1012B ONTIME 0.2 - GLONASS observations<br>
+                    • LOG COM1 RTCM1019B ONTIME 2 - GPS ephemeris<br>
+                    • LOG COM1 RTCM1020B ONTIME 2 - GLONASS ephemeris<br>
+                    <br>
+                    <strong>Comandos de Sistema:</strong><br>
+                    • UNLOGALL COM1 - Detiene todos los logs en COM1<br>
+                    • SET CPUFREQ 624 - Establece frecuencia CPU<br>
+                    • SET PVTFREQ 5 - Frecuencia de solución PVT<br>
+                    • SET RTKFREQ 5 - Frecuencia de solución RTK<br>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1011,15 +1209,36 @@
         // Request device orientation permission (for iOS 13+)
         function requestDeviceOrientation() {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission()
-                    .then(response => {
-                        if (response === 'granted') {
-                            startIMUReading();
-                        }
-                    })
-                    .catch(console.error);
+                // Only request permission when user explicitly activates TILT, not on page load
+                // This prevents the annoying permission popup on iOS
+                console.log('DeviceOrientation permission required - will request when TILT is activated');
             } else {
+                // For Android and other browsers, start immediately
                 startIMUReading();
+            }
+        }
+
+        // Request IMU permission explicitly when user activates TILT
+        async function requestIMUPermission() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const response = await DeviceOrientationEvent.requestPermission();
+                    if (response === 'granted') {
+                        startIMUReading();
+                        return true;
+                    } else {
+                        alert('❌ Permiso de sensores denegado. Por favor, habilita los permisos en la configuración del navegador.');
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Error requesting orientation permission:', error);
+                    alert('❌ Error al solicitar permisos de sensores: ' + error.message);
+                    return false;
+                }
+            } else {
+                // Permission not needed, start directly
+                startIMUReading();
+                return true;
             }
         }
 
@@ -1728,19 +1947,31 @@
         }
 
         // TILT
-        function toggleTilt() {
-            app.tiltEnabled = !app.tiltEnabled;
-            const btn = document.getElementById('tiltBtn');
+        async function toggleTilt() {
+            if (!app.tiltEnabled) {
+                // Activating TILT - request permission first
+                const permitted = await requestIMUPermission();
+                if (!permitted) {
+                    return; // Permission denied, don't activate
+                }
 
-            if (app.tiltEnabled) {
+                // Wait a bit for IMU data to start flowing
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                if (!app.imuData) {
+                    alert('⚠️ No hay datos del IMU.\n\nAsegúrate de:\n1. Dar permisos de sensores en tu navegador\n2. Usar un dispositivo con sensores de orientación (móvil/tablet)\n3. Usar HTTPS (requerido para sensores)');
+                    return;
+                }
+
+                app.tiltEnabled = true;
+                const btn = document.getElementById('tiltBtn');
                 btn.textContent = '✅ TILT ACTIVADO';
                 btn.className = 'btn btn-success';
-                if (!app.imuData) {
-                    alert('⚠️ No hay datos del IMU. Asegúrate de dar permisos de sensores.');
-                } else {
-                    alert('✅ TILT activado - Puedes medir con el jalón inclinado');
-                }
+                alert('✅ TILT activado\n\nPuedes medir con el jalón inclinado.\nEl sistema compensará automáticamente la inclinación.');
             } else {
+                // Deactivating TILT
+                app.tiltEnabled = false;
+                const btn = document.getElementById('tiltBtn');
                 btn.textContent = '⬜ ACTIVAR TILT';
                 btn.className = 'btn btn-warning';
             }
@@ -1829,47 +2060,7 @@
             }, 1000);
         }
 
-        // CAMERA
-        async function startCamera() {
-            try {
-                // Check if getUserMedia is supported
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('Tu navegador no soporta acceso a la cámara');
-                }
-
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: { ideal: 'environment' },
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    }
-                });
-
-                const video = document.getElementById('cameraPreview');
-                video.srcObject = stream;
-                app.cameraStream = stream;
-                alert('✅ Cámara iniciada');
-
-            } catch (error) {
-                let errorMsg = '❌ No se pudo acceder a la cámara\n\n';
-
-                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                    errorMsg += 'PERMISO DENEGADO:\n';
-                    errorMsg += '1. Haz clic en el ícono de candado/información en la barra de direcciones\n';
-                    errorMsg += '2. Permite el acceso a la cámara\n';
-                    errorMsg += '3. Recarga la página';
-                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-                    errorMsg += 'No se encontró ninguna cámara en este dispositivo';
-                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-                    errorMsg += 'La cámara está siendo usada por otra aplicación';
-                } else {
-                    errorMsg += 'Error: ' + error.message;
-                }
-
-                alert(errorMsg);
-                console.error('Camera error:', error);
-            }
-        }
+        // CAMERA (implementation moved to end of script for better organization)
 
         function stopCamera() {
             if (app.cameraStream) {
@@ -2262,8 +2453,252 @@
             URL.revokeObjectURL(url);
         }
 
+        // CONSOLE FUNCTIONS
+        async function sendSerialCommand() {
+            const command = document.getElementById('consoleCommand').value.trim();
+            if (!command) {
+                alert('⚠️ Ingresa un comando');
+                return;
+            }
+
+            await executeSerialCommand(command);
+            document.getElementById('consoleCommand').value = '';
+        }
+
+        async function quickCommand(command) {
+            await executeSerialCommand(command);
+        }
+
+        async function executeSerialCommand(command) {
+            const output = document.getElementById('consoleOutput');
+            const timestamp = new Date().toLocaleTimeString();
+
+            // Log command
+            output.textContent += `[${timestamp}] TX> ${command}\n`;
+            output.scrollTop = output.scrollHeight;
+
+            try {
+                // Send command to backend server
+                const response = await fetch(app.config.serverUrl + '/api/comnav/command', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        command: command,
+                        port: 'COM1',
+                        baudrate: 115200
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    output.textContent += `[${timestamp}] RX> ${data.response || 'OK'}\n`;
+                    output.textContent += `[${timestamp}] ✅ Comando enviado correctamente\n\n`;
+
+                    // Update serial status
+                    document.getElementById('serialStatus').textContent = 'Conectado ✅';
+                    document.getElementById('serialStatus').style.color = '#4CAF50';
+                } else {
+                    const error = await response.text();
+                    output.textContent += `[${timestamp}] ❌ Error: ${error}\n\n`;
+
+                    // Show alert for important errors
+                    if (response.status === 404) {
+                        output.textContent += `[${timestamp}] ℹ️  El servidor backend no está disponible.\n`;
+                        output.textContent += `[${timestamp}] ℹ️  Los comandos se están simulando localmente.\n\n`;
+                        alert('⚠️ Servidor ComNav K222 no disponible\n\nPara enviar comandos reales al receptor:\n1. Asegúrate de que el servidor backend esté ejecutándose\n2. El receptor ComNav K222 debe estar conectado por USB/Serial\n3. Verifica la configuración del puerto en el servidor');
+                    }
+                }
+            } catch (error) {
+                output.textContent += `[${timestamp}] ❌ Error de comunicación: ${error.message}\n`;
+                output.textContent += `[${timestamp}] ℹ️  Simulando comando localmente...\n`;
+                output.textContent += `[${timestamp}] RX> OK (simulado)\n\n`;
+
+                document.getElementById('serialStatus').textContent = 'Simulado (servidor no disponible)';
+                document.getElementById('serialStatus').style.color = '#FF9800';
+
+                // Show friendly message
+                console.log('Comando simulado:', command);
+            }
+
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearConsoleOutput() {
+            document.getElementById('consoleOutput').textContent = '';
+            const timestamp = new Date().toLocaleTimeString();
+            document.getElementById('consoleOutput').textContent = `[${timestamp}] Consola limpiada\n\n`;
+        }
+
+        // Enhanced NTRIP connection with proper backend integration
+        async function connectNTRIPRover() {
+            const server = document.getElementById('ntripServer').value;
+            const port = document.getElementById('ntripPort').value;
+            const mountpoint = document.getElementById('ntripMount').value;
+            const user = document.getElementById('ntripUser').value || '';
+            const pass = document.getElementById('ntripPass').value || '';
+
+            if (!server || !port || !mountpoint) {
+                alert('⚠️ Completa todos los campos requeridos (Servidor, Puerto, Mountpoint)');
+                return;
+            }
+
+            if (!app.connected || !app.gpsData) {
+                alert('⚠️ Conecta el GPS primero para usar NTRIP');
+                return;
+            }
+
+            try {
+                // Send NTRIP configuration to backend
+                const response = await fetch(app.config.serverUrl + '/api/ntrip/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        mode: 'rover',
+                        server: server,
+                        port: parseInt(port),
+                        mountpoint: mountpoint,
+                        username: user,
+                        password: pass,
+                        position: app.gpsData.position
+                    })
+                });
+
+                if (response.ok) {
+                    app.ntripConnected = true;
+                    updateNTRIPStatus(true);
+
+                    // Send ComNav configuration commands
+                    await executeSerialCommand('INTERFACEMODE COM2 AUTO AUTO ON');
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await executeSerialCommand('LOG COM1 GPGGA ONTIME 0.2 0 NOHOLD');
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await executeSerialCommand('RTKOBSMODE 3');
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await executeSerialCommand('SAVECONFIG');
+
+                    document.getElementById('ntripInfo').innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ <b>NTRIP ROVER Conectado</b><br>
+                            Servidor: ${server}:${port}<br>
+                            Mountpoint: ${mountpoint}<br>
+                            <br>
+                            <small>✅ Comandos ComNav enviados:<br>
+                            • INTERFACEMODE COM2 AUTO AUTO ON<br>
+                            • LOG COM1 GPGGA ONTIME 0.2 0 NOHOLD<br>
+                            • RTKOBSMODE 3<br>
+                            • SAVECONFIG<br>
+                            <br>
+                            El receptor debería comenzar a recibir correcciones RTK.</small>
+                        </div>
+                    `;
+
+                    alert(`✅ NTRIP ROVER conectado\n\nServidor: ${server}\nMountpoint: ${mountpoint}\n\nComandos ComNav configurados correctamente.\nEsperando solución RTK...`);
+                } else {
+                    throw new Error('Error al conectar NTRIP');
+                }
+
+            } catch (error) {
+                // Fallback to simulation mode
+                console.error('NTRIP connection error:', error);
+
+                app.ntripConnected = true;
+                updateNTRIPStatus(true);
+
+                document.getElementById('ntripInfo').innerHTML = `
+                    <div class="alert alert-warning">
+                        ⚠️ <b>NTRIP en modo simulación</b><br>
+                        Servidor: ${server}:${port}<br>
+                        Mountpoint: ${mountpoint}<br>
+                        <br>
+                        <small>El servidor backend no está disponible. Para conexión real:<br>
+                        1. Asegúrate de que el servidor Python esté ejecutándose<br>
+                        2. El servidor manejará la conexión TCP al caster NTRIP<br>
+                        3. Las correcciones RTCM se enviarán al receptor ComNav K222<br>
+                        <br>
+                        Comandos necesarios en el receptor:<br>
+                        • INTERFACEMODE COM2 AUTO AUTO ON<br>
+                        • LOG COM1 GPGGA ONTIME 0.2 0 NOHOLD<br>
+                        • RTKOBSMODE 3<br>
+                        • SAVECONFIG</small>
+                    </div>
+                `;
+
+                alert(`ℹ️ NTRIP configurado en modo simulación\n\nPara conexión real al caster NTRIP:\n1. Inicia el servidor backend\n2. Conecta el receptor ComNav K222 por USB\n3. El servidor manejará automáticamente la conexión NTRIP\n\nServidor: ${server}\nMountpoint: ${mountpoint}`);
+            }
+        }
+
+        // Improved camera start with explicit permission request
+        async function startCamera() {
+            try {
+                // Check if getUserMedia is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Tu navegador no soporta acceso a la cámara');
+                }
+
+                // Only request when user explicitly clicks the camera button
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                });
+
+                const video = document.getElementById('cameraPreview');
+                video.srcObject = stream;
+                app.cameraStream = stream;
+
+                // Show success message
+                const alertMsg = document.createElement('div');
+                alertMsg.className = 'alert alert-success';
+                alertMsg.textContent = '✅ Cámara activada correctamente';
+                alertMsg.style.marginTop = '10px';
+
+                const container = document.getElementById('cameraContainer');
+                const existingAlert = container.querySelector('.alert');
+                if (existingAlert) existingAlert.remove();
+                container.parentElement.insertBefore(alertMsg, container.nextSibling);
+
+                setTimeout(() => alertMsg.remove(), 3000);
+
+            } catch (error) {
+                let errorMsg = '❌ No se pudo acceder a la cámara\n\n';
+
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMsg += 'PERMISO DENEGADO:\n';
+                    errorMsg += '1. Haz clic en el ícono 🔒 en la barra de direcciones\n';
+                    errorMsg += '2. Busca "Cámara" y permite el acceso\n';
+                    errorMsg += '3. Recarga la página e intenta de nuevo\n\n';
+                    errorMsg += 'IMPORTANTE: Debes permitir el acceso a la cámara cuando el navegador te lo solicite.';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMsg += 'No se encontró ninguna cámara en este dispositivo.\n\n';
+                    errorMsg += 'Verifica que tu dispositivo tenga una cámara funcionando.';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    errorMsg += 'La cámara está siendo usada por otra aplicación.\n\n';
+                    errorMsg += 'Cierra otras aplicaciones que puedan estar usando la cámara.';
+                } else {
+                    errorMsg += 'Error: ' + error.message;
+                }
+
+                alert(errorMsg);
+                console.error('Camera error:', error);
+            }
+        }
+
         // Initialize on load
         window.addEventListener('DOMContentLoaded', init);
+
+        // Add Enter key support for console command input
+        document.addEventListener('DOMContentLoaded', () => {
+            const consoleInput = document.getElementById('consoleCommand');
+            if (consoleInput) {
+                consoleInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        sendSerialCommand();
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
