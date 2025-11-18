@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GNSS.AI - ComNav K222</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .card {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 10px;
+        }
+
+        .btn {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #00a8cc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,212,255,0.4);
+        }
+
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ee5a6f;
+        }
+
+        .btn-success {
+            background: #2ed573;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #26de81;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status.disconnected {
+            background: #ff4757;
+            color: white;
+        }
+
+        .status.connected {
+            background: #2ed573;
+            color: white;
+        }
+
+        .command-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .command-btn {
+            background: #0f3460;
+            color: #00d4ff;
+            border: 2px solid #00d4ff;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .command-btn:hover {
+            background: #00d4ff;
+            color: #0f3460;
+        }
+
+        .command-btn:disabled {
+            border-color: #555;
+            color: #555;
+            background: #222;
+            cursor: not-allowed;
+        }
+
+        .console {
+            background: #0a0e27;
+            border-radius: 8px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .console-line {
+            margin: 2px 0;
+            word-wrap: break-word;
+        }
+
+        .console-line.received {
+            color: #2ed573;
+        }
+
+        .console-line.sent {
+            color: #00d4ff;
+        }
+
+        .console-line.error {
+            color: #ff4757;
+        }
+
+        .console-line.info {
+            color: #ffa502;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 120px);
+            padding: 10px;
+            background: #0a0e27;
+            border: 2px solid #00d4ff;
+            border-radius: 6px;
+            color: #eee;
+            font-size: 14px;
+        }
+
+        .custom-command {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #999;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #00d4ff;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .command-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛰️ GNSS.AI - ComNav K222 RTK</h1>
+
+        <!-- Conexión Bluetooth -->
+        <div class="card">
+            <h2>📡 Conexión Bluetooth</h2>
+            <div class="status disconnected" id="connectionStatus">Desconectado</div>
+            <div>
+                <button class="btn btn-success" id="connectBtn" onclick="connectBluetooth()">Conectar Bluetooth</button>
+                <button class="btn btn-danger" id="disconnectBtn" onclick="disconnectBluetooth()" disabled>Desconectar</button>
+            </div>
+        </div>
+
+        <!-- Comandos ComNav Predefinidos -->
+        <div class="card">
+            <h2>⚙️ Comandos ComNav K222</h2>
+            <p style="color: #999; margin-bottom: 10px;">Comandos para configurar el receptor GPS</p>
+
+            <div class="command-grid">
+                <button class="command-btn" onclick="sendCommand('log com3 gpgga ontime 1')" disabled id="cmd1">GPGGA (1s)</button>
+                <button class="command-btn" onclick="sendCommand('log com3 gpgll ontime 1')" disabled id="cmd2">GPGLL (1s)</button>
+                <button class="command-btn" onclick="sendCommand('log com3 gpgsa ontime 1')" disabled id="cmd3">GPGSA (1s)</button>
+                <button class="command-btn" onclick="sendCommand('log com3 gpgst ontime 1')" disabled id="cmd4">GPGST (1s)</button>
+                <button class="command-btn" onclick="sendCommand('log com3 gpgsv ontime 1')" disabled id="cmd5">GPGSV (1s)</button>
+                <button class="command-btn" onclick="sendCommand('log com3 gphdt ontime 1')" disabled id="cmd6">GPHDT (1s)</button>
+                <button class="command-btn" onclick="sendCommand('log com3 gprmc ontime 1')" disabled id="cmd7">GPRMC (1s)</button>
+                <button class="command-btn" onclick="sendCommand('log com3 gpvtg ontime 1')" disabled id="cmd8">GPVTG (1s)</button>
+                <button class="command-btn" onclick="sendCommand('log com3 gpzda ontime 1')" disabled id="cmd9">GPZDA (1s)</button>
+                <button class="command-btn" onclick="sendCommand('saveconfig')" disabled id="cmd10">💾 Guardar Config</button>
+                <button class="command-btn" onclick="sendCommand('unlogall')" disabled id="cmd11">🛑 Detener Todo</button>
+                <button class="command-btn" onclick="sendAllCommands()" disabled id="cmdAll">▶️ Enviar Todo</button>
+            </div>
+
+            <!-- Comando Personalizado -->
+            <div class="custom-command">
+                <input type="text" id="customCommand" placeholder="Comando personalizado..." disabled>
+                <button class="btn" onclick="sendCustomCommand()" id="sendCustomBtn" disabled>Enviar</button>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="card">
+            <h2>📊 Estadísticas</h2>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-label">Mensajes Recibidos</div>
+                    <div class="stat-value" id="msgReceived">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Comandos Enviados</div>
+                    <div class="stat-value" id="msgSent">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Errores</div>
+                    <div class="stat-value" id="msgErrors">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Tiempo Conectado</div>
+                    <div class="stat-value" id="timeConnected">00:00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console de Datos -->
+        <div class="card">
+            <h2>💻 Consola de Datos</h2>
+            <div class="console" id="console">
+                <div class="console-line info">Esperando conexión...</div>
+            </div>
+            <button class="btn" onclick="clearConsole()" style="margin-top: 10px;">Limpiar Consola</button>
+        </div>
+    </div>
+
+    <script>
+        let bluetoothDevice = null;
+        let bluetoothCharacteristic = null;
+        let isConnected = false;
+        let stats = {
+            received: 0,
+            sent: 0,
+            errors: 0,
+            connectedSince: null
+        };
+        let connectionTimer = null;
+
+        // UUIDs para el servicio Bluetooth del Pi Zero
+        const SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+        const CHARACTERISTIC_UUID_TX = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // Para enviar
+        const CHARACTERISTIC_UUID_RX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // Para recibir
+
+        // Conectar Bluetooth
+        async function connectBluetooth() {
+            try {
+                addConsoleMessage('Buscando dispositivo Bluetooth...', 'info');
+
+                // Solicitar dispositivo Bluetooth
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { services: [SERVICE_UUID] },
+                        { namePrefix: 'GNSS' },
+                        { namePrefix: 'ComNav' }
+                    ],
+                    optionalServices: [SERVICE_UUID]
+                });
+
+                addConsoleMessage(`Conectando a ${bluetoothDevice.name}...`, 'info');
+
+                // Conectar al GATT Server
+                const server = await bluetoothDevice.gatt.connect();
+
+                // Obtener el servicio
+                const service = await server.getPrimaryService(SERVICE_UUID);
+
+                // Obtener la característica TX (para enviar datos)
+                bluetoothCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID_TX);
+
+                // Obtener la característica RX (para recibir datos)
+                const rxCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID_RX);
+
+                // Suscribirse a notificaciones
+                await rxCharacteristic.startNotifications();
+                rxCharacteristic.addEventListener('characteristicvaluechanged', handleDataReceived);
+
+                // Actualizar UI
+                isConnected = true;
+                updateConnectionStatus(true);
+                addConsoleMessage(`✓ Conectado a ${bluetoothDevice.name}`, 'received');
+
+                // Iniciar temporizador
+                stats.connectedSince = Date.now();
+                startConnectionTimer();
+
+                // Manejar desconexión
+                bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+            } catch (error) {
+                addConsoleMessage(`Error: ${error.message}`, 'error');
+                stats.errors++;
+                updateStats();
+            }
+        }
+
+        // Desconectar Bluetooth
+        function disconnectBluetooth() {
+            if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+                bluetoothDevice.gatt.disconnect();
+            }
+            onDisconnected();
+        }
+
+        // Manejar desconexión
+        function onDisconnected() {
+            isConnected = false;
+            bluetoothCharacteristic = null;
+            updateConnectionStatus(false);
+            addConsoleMessage('✗ Desconectado', 'error');
+            stopConnectionTimer();
+        }
+
+        // Recibir datos del GPS
+        function handleDataReceived(event) {
+            const value = event.target.value;
+            const decoder = new TextDecoder('utf-8');
+            const data = decoder.decode(value);
+
+            addConsoleMessage(`◀ ${data}`, 'received');
+            stats.received++;
+            updateStats();
+        }
+
+        // Enviar comando al GPS
+        async function sendCommand(command) {
+            if (!isConnected || !bluetoothCharacteristic) {
+                addConsoleMessage('Error: No conectado', 'error');
+                stats.errors++;
+                updateStats();
+                return;
+            }
+
+            try {
+                // Agregar salto de línea y retorno de carro (ComNav usa \r\n)
+                const commandWithCRLF = command + '\r\n';
+                const encoder = new TextEncoder();
+                const data = encoder.encode(commandWithCRLF);
+
+                await bluetoothCharacteristic.writeValue(data);
+
+                addConsoleMessage(`▶ ${command}`, 'sent');
+                stats.sent++;
+                updateStats();
+
+            } catch (error) {
+                addConsoleMessage(`Error enviando comando: ${error.message}`, 'error');
+                stats.errors++;
+                updateStats();
+            }
+        }
+
+        // Enviar comando personalizado
+        function sendCustomCommand() {
+            const input = document.getElementById('customCommand');
+            const command = input.value.trim();
+
+            if (command) {
+                sendCommand(command);
+                input.value = '';
+            }
+        }
+
+        // Enviar todos los comandos secuencialmente
+        async function sendAllCommands() {
+            const commands = [
+                'log com3 gpgga ontime 1',
+                'log com3 gpgll ontime 1',
+                'log com3 gpgsa ontime 1',
+                'log com3 gpgst ontime 1',
+                'log com3 gpgsv ontime 1',
+                'log com3 gphdt ontime 1',
+                'log com3 gprmc ontime 1',
+                'log com3 gpvtg ontime 1',
+                'log com3 gpzda ontime 1',
+                'saveconfig'
+            ];
+
+            addConsoleMessage('Enviando configuración completa...', 'info');
+
+            for (const cmd of commands) {
+                await sendCommand(cmd);
+                // Esperar 200ms entre comandos
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            addConsoleMessage('✓ Configuración completa enviada', 'received');
+        }
+
+        // Actualizar estado de conexión
+        function updateConnectionStatus(connected) {
+            const statusDiv = document.getElementById('connectionStatus');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+
+            // Actualizar todos los botones de comando
+            const commandBtns = document.querySelectorAll('.command-btn');
+            const customInput = document.getElementById('customCommand');
+            const sendCustomBtn = document.getElementById('sendCustomBtn');
+
+            if (connected) {
+                statusDiv.className = 'status connected';
+                statusDiv.textContent = '✓ Conectado';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+
+                commandBtns.forEach(btn => btn.disabled = false);
+                customInput.disabled = false;
+                sendCustomBtn.disabled = false;
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.textContent = '✗ Desconectado';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+
+                commandBtns.forEach(btn => btn.disabled = true);
+                customInput.disabled = true;
+                sendCustomBtn.disabled = true;
+            }
+        }
+
+        // Agregar mensaje a la consola
+        function addConsoleMessage(message, type = 'info') {
+            const console = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = `console-line ${type}`;
+            line.textContent = `[${timestamp}] ${message}`;
+            console.appendChild(line);
+
+            // Auto-scroll
+            console.scrollTop = console.scrollHeight;
+
+            // Limitar a 500 líneas
+            while (console.children.length > 500) {
+                console.removeChild(console.firstChild);
+            }
+        }
+
+        // Limpiar consola
+        function clearConsole() {
+            const console = document.getElementById('console');
+            console.innerHTML = '<div class="console-line info">Consola limpiada...</div>';
+        }
+
+        // Actualizar estadísticas
+        function updateStats() {
+            document.getElementById('msgReceived').textContent = stats.received;
+            document.getElementById('msgSent').textContent = stats.sent;
+            document.getElementById('msgErrors').textContent = stats.errors;
+        }
+
+        // Temporizador de conexión
+        function startConnectionTimer() {
+            connectionTimer = setInterval(() => {
+                if (stats.connectedSince) {
+                    const elapsed = Math.floor((Date.now() - stats.connectedSince) / 1000);
+                    const minutes = Math.floor(elapsed / 60);
+                    const seconds = elapsed % 60;
+                    document.getElementById('timeConnected').textContent =
+                        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+
+        function stopConnectionTimer() {
+            if (connectionTimer) {
+                clearInterval(connectionTimer);
+                connectionTimer = null;
+            }
+            stats.connectedSince = null;
+            document.getElementById('timeConnected').textContent = '00:00';
+        }
+
+        // Permitir enviar comando con Enter
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('customCommand').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendCustomCommand();
+                }
+            });
+        });
+
+        // Verificar soporte de Web Bluetooth
+        if (!navigator.bluetooth) {
+            addConsoleMessage('⚠️ Web Bluetooth no está disponible en este navegador', 'error');
+            addConsoleMessage('Por favor usa Chrome, Edge o un navegador compatible', 'error');
+        }
+    </script>
+</body>
+</html>
