@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>GNSS.AI · Panel K922 (COM1 único)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar__brand">
+    <span class="topbar__title">GNSS.AI · Panel K922</span>
+    <span class="topbar__subtitle">Modo integrado: UART COM1 (GNSS_RXD1 / GNSS_TXD1)</span>
+  </div>
+  <div class="topbar__right">
+    <label class="inline-field">
+      Backend:
+      <input id="backendUrl" type="text" value="ws://localhost:8090" />
+    </label>
+    <span id="connStatus" class="badge badge--danger">Desconectado</span>
+    <button id="btnConnect" class="btn btn--ghost">Conectar</button>
+  </div>
+</header>
+
+<main class="layout">
+  <nav class="sidebar">
+    <button class="nav-btn nav-btn--active" data-panel="status">Estado</button>
+    <button class="nav-btn" data-panel="connection">COM1 / Enlace</button>
+    <button class="nav-btn" data-panel="gnss">GNSS / RTK</button>
+    <button class="nav-btn" data-panel="nmea">NMEA</button>
+    <button class="nav-btn" data-panel="imu">IMU / INS</button>
+    <button class="nav-btn" data-panel="config">Perfiles</button>
+  </nav>
+
+  <section class="content">
+
+    <!-- ESTADO -->
+    <section class="panel panel--active" id="panel-status">
+      <h1>Estado en tiempo real</h1>
+      <div class="grid grid-3">
+        <div class="stat-card">
+          <div class="stat-label">Modo</div>
+          <div class="stat-value" id="statMode">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Satélites usados</div>
+          <div class="stat-value" id="statSats">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Solución</div>
+          <div class="stat-value" id="statRtk">—</div>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div>
+          <h2>Posición</h2>
+          <div class="status-block">
+            <div><strong>Lat:</strong> <span id="statLat">—</span></div>
+            <div><strong>Lon:</strong> <span id="statLon">—</span></div>
+            <div><strong>Alt elipsoidal:</strong> <span id="statH">—</span></div>
+          </div>
+        </div>
+        <div>
+          <h2>INS</h2>
+          <div class="status-block">
+            <div><strong>Velocidad:</strong> <span id="statVel">—</span></div>
+            <div><strong>Heading:</strong> <span id="statHeading">—</span></div>
+            <div><strong>Pitch / Roll:</strong> <span id="statPitchRoll">—</span></div>
+          </div>
+        </div>
+      </div>
+      <h2>Log</h2>
+      <pre id="statusLog" class="status-log"></pre>
+      <button id="btnRequestStatus" class="btn btn--ghost">Actualizar estado</button>
+    </section>
+
+    <!-- CONEXIÓN COM1 -->
+    <section class="panel" id="panel-connection">
+      <h1>Conexión física K922 · COM1 único</h1>
+      <div class="card">
+        <h2>UART COM1 del módulo</h2>
+        <p class="muted">
+          Este panel supone que solo usas <strong>COM1</strong> del K922:<br>
+          RXD: <code>GNSS_RXD1</code> · TXD: <code>GNSS_TXD1</code> · GND común. Alimentación 3.3–5.5 V DC.<br>
+          Conéctalo a la UART del Pi / Orange Pi (o a un USB–TTL) y coloca aquí el dispositivo.
+        </p>
+        <div class="grid grid-3">
+          <div class="form-group">
+            <label for="serialPort">Dispositivo serie</label>
+            <input id="serialPort" type="text" value="/dev/ttyS0">
+            <small>Ej.: /dev/ttyS0, /dev/ttyAMA0, /dev/ttyUSB0…</small>
+          </div>
+          <div class="form-group">
+            <label for="serialBaud">Baudrate COM1</label>
+            <select id="serialBaud"></select>
+          </div>
+          <div class="form-group">
+            <label for="com1Role">Rol de COM1</label>
+            <select id="com1Role">
+              <option value="nmea_out">Salida NMEA + estado</option>
+              <option value="rtk_rover">Rover: correcciones RTCM IN + NMEA OUT</option>
+              <option value="rtk_base">Base: RTCM OUT + NMEA OUT</option>
+              <option value="debug">Debug / CNB</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Transporte hacia el backend GNSS.AI</h2>
+        <div class="grid grid-2">
+          <div class="form-group">
+            <label for="transportType">Tipo de enlace con el backend</label>
+            <select id="transportType">
+              <option value="serial">Pi/OrangePi leyendo COM1 directo</option>
+              <option value="tcp_server">Pi como servidor TCP (puerto GNSS)</option>
+              <option value="tcp_client">Pi como cliente TCP a otro equipo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tcpPort">Puerto TCP (si aplica)</label>
+            <input id="tcpPort" type="number" value="7001">
+            <small>Solo se usa si eliges TCP.</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GNSS / RTK -->
+    <section class="panel" id="panel-gnss">
+      <h1>GNSS / RTK</h1>
+      <div class="grid grid-2">
+        <div class="card">
+          <h2>Constelaciones</h2>
+          <p class="muted">Activa solo lo necesario para tu trabajo.</p>
+          <div id="gnssConstellations" class="pill-group"></div>
+        </div>
+        <div class="card">
+          <h2>Modo</h2>
+          <div class="form-group">
+            <label for="rtkMode">Modo GNSS</label>
+            <select id="rtkMode">
+              <option value="standalone">Solo GNSS (SPP)</option>
+              <option value="rtk_rover">RTK Rover</option>
+              <option value="rtk_base">RTK Base</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="rtkRate">Frecuencia de solución (Hz)</label>
+            <select id="rtkRate"></select>
+          </div>
+          <div class="form-group">
+            <label for="rtkBaseline">Longitud máxima de base (km)</label>
+            <input id="rtkBaseline" type="number" value="10" step="0.1">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Correcciones RTCM por COM1</h2>
+        <p class="muted">
+          Si el modo es Rover, COM1 recibirá RTCM (IN) y emitirá NMEA (OUT) según decida tu backend.
+        </p>
+        <div class="grid grid-2">
+          <div>
+            <h3>Entrada de correcciones</h3>
+            <div class="form-group">
+              <label for="corrInSource">Fuente</label>
+              <select id="corrInSource">
+                <option value="none">Ninguna (solo SPP)</option>
+                <option value="ntrip">Cliente NTRIP (backend &rarr; COM1)</option>
+                <option value="tcp">TCP RTCM (backend &rarr; COM1)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="corrInFormat">Formato</label>
+              <select id="corrInFormat">
+                <option value="RTCM3">RTCM 3.x / MSM</option>
+                <option value="RTCM2">RTCM 2.x</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <h3>Mensajes RTCM (modo Base)</h3>
+            <p class="muted">Solo si usas el K922 como base.</p>
+            <div id="rtcmMessages" class="pill-group pill-group--wrap"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NMEA -->
+    <section class="panel" id="panel-nmea">
+      <h1>NMEA por COM1</h1>
+      <div class="card">
+        <h2>Configuración NMEA</h2>
+        <div class="grid grid-3">
+          <div class="form-group">
+            <label for="nmeaTalker">Talker ID</label>
+            <select id="nmeaTalker"></select>
+          </div>
+          <div class="form-group">
+            <label for="nmeaRate">Frecuencia base (Hz)</label>
+            <select id="nmeaRate"></select>
+          </div>
+          <div class="form-group">
+            <label>Mensajes habilitados</label>
+            <div id="nmeaMessages" class="pill-group pill-group--wrap"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- IMU / INS -->
+    <section class="panel" id="panel-imu">
+      <h1>IMU / INS</h1>
+      <div class="card">
+        <h2>Navegación GNSS+INS</h2>
+        <div class="form-group">
+          <label>
+            <input id="imuEnabled" type="checkbox" checked> Activar fusión GNSS+INS
+          </label>
+        </div>
+        <div class="grid grid-3">
+          <div class="form-group">
+            <label for="imuRate">Frecuencia IMU (Hz)</label>
+            <select id="imuRate"></select>
+          </div>
+          <div class="form-group">
+            <label for="insPriority">Prioridad de solución</label>
+            <select id="insPriority">
+              <option value="prefer_gnss">Preferir GNSS</option>
+              <option value="prefer_ins">Preferir INS cuando GNSS salta</option>
+              <option value="blend">Mezcla adaptativa</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="insMaxGap">Máx. tiempo sin GNSS (s)</label>
+            <input id="insMaxGap" type="number" value="30">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONFIG PERFILES -->
+    <section class="panel" id="panel-config">
+      <h1>Perfiles (Base / Rover / INS)</h1>
+      <div class="card">
+        <h2>Exportar / importar JSON</h2>
+        <div class="grid grid-2">
+          <div>
+            <button id="btnExportJson" class="btn btn--primary">Exportar configuración</button>
+            <pre id="configPreview" class="status-log"></pre>
+          </div>
+          <div>
+            <label class="file-input-label">
+              Importar JSON
+              <input id="fileImportJson" type="file" accept="application/json">
+            </label>
+            <p class="muted">
+              Guarda un perfil para Base, otro para Rover, etc., y cárgalos aquí.
+            </p>
+          </div>
+        </div>
+      </div>
+      <button id="btnApplyConfig" class="btn btn--success">Enviar configuración al backend</button>
+    </section>
+
+  </section>
+</main>
+
+<footer class="footer">
+  GNSS.AI · Panel K922 COM1 único · Integración UART RXD1/TXD1 a Pi / Orange Pi
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
