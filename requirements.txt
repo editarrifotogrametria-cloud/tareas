@@ -1,0 +1,18 @@
+# GPS Server Requirements
+# Compatible with FUNCIONABLE frontend (Socket.IO v3 client)
+
+# Flask and extensions
+Flask>=2.0.0,<3.0.0
+Flask-Cors>=3.0.10
+
+# Socket.IO with EIO v3 compatibility
+# Version 4.x supports Engine.IO v3 (compatible with socket.io-client v2/v3)
+Flask-SocketIO>=4.3.0,<5.0.0
+python-socketio>=4.6.0,<5.0.0
+python-engineio>=3.14.0,<4.0.0
+
+# Serial communication
+pyserial>=3.5
+
+# Additional utilities
+python-dotenv>=0.19.0

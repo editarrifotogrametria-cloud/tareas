@@ -35,7 +35,14 @@ uptime_sec = 0
 # ====================================================================
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'gps-collector-secret-key'
-socketio = SocketIO(app, cors_allowed_origins="*")
+# Initialize SocketIO with Engine.IO v3 compatibility
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    engineio_logger=False,
+    logger=False,
+    async_mode='threading'
+)
 
 # ====================================================================
 # Utility Functions
@@ -339,6 +346,57 @@ def funcionable_config():
     """Serve FUNCIONABLE config example."""
     funcionable_path = os.path.join(os.path.dirname(BASE_DIR), "funcionable")
     return send_from_directory(funcionable_path, "config.example.json")
+
+@app.route("/funcionable/static/img/<path:filename>")
+def funcionable_img(filename):
+    """Serve FUNCIONABLE image files."""
+    # Return 404 for missing images - they're from lazy-loaded modules
+    return "", 404
+
+@app.route("/funcionable/static/fonts/<path:filename>")
+def funcionable_fonts(filename):
+    """Serve FUNCIONABLE font files."""
+    funcionable_static = os.path.join(os.path.dirname(BASE_DIR), "funcionable", "static", "fonts")
+    if os.path.exists(os.path.join(funcionable_static, filename)):
+        return send_from_directory(funcionable_static, filename)
+    return "", 404
+
+@app.route("/funcionable/static/css/static/fonts/<path:filename>")
+def funcionable_css_fonts(filename):
+    """Handle incorrectly nested font paths from CSS."""
+    # Redirect to correct font path
+    funcionable_static = os.path.join(os.path.dirname(BASE_DIR), "funcionable", "static", "fonts")
+    if os.path.exists(os.path.join(funcionable_static, filename)):
+        return send_from_directory(funcionable_static, filename)
+    return "", 404
+
+@app.route("/static/css/<path:filename>")
+def static_css(filename):
+    """Serve CSS files - catch lazy-loaded chunks."""
+    # These are lazy-loaded modules that don't exist, return 404 silently
+    return "", 404
+
+@app.route("/static/js/<path:filename>")
+def static_js(filename):
+    """Serve JS files - catch lazy-loaded chunks."""
+    # These are lazy-loaded modules that don't exist, return 404 silently
+    return "", 404
+
+@app.route("/static/img/<path:filename>")
+def static_img(filename):
+    """Serve image files - catch lazy-loaded resources."""
+    # These are lazy-loaded modules that don't exist, return 404 silently
+    return "", 404
+
+@app.route("/info")
+def info():
+    """Provide server info endpoint for FUNCIONABLE."""
+    return jsonify({
+        "version": "1.0.0",
+        "server": "GPS Server",
+        "status": "running",
+        "uptime": uptime_sec
+    })
 
 @app.route("/static/<path:filename>")
 def static_files(filename):

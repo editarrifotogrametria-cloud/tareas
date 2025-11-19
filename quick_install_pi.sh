@@ -132,10 +132,33 @@ if [[ $REPLY =~ ^[Ss]$ ]]; then
     sudo apt-get update
 
     echo -e "${YELLOW}Instalando paquetes del sistema...${NC}"
-    sudo apt-get install -y python3-pip python3-serial python3-dev
+    sudo apt-get install -y python3-pip python3-serial python3-dev python3-venv
 
-    echo -e "${YELLOW}Instalando librerías Python...${NC}"
-    pip3 install --user flask flask-socketio pyserial
+    echo -e "${YELLOW}Creando entorno virtual...${NC}"
+    if [ ! -d "venv" ]; then
+        python3 -m venv venv
+        echo -e "${GREEN}✓ Entorno virtual creado${NC}"
+    fi
+
+    echo -e "${YELLOW}Activando entorno virtual...${NC}"
+    source venv/bin/activate
+
+    echo -e "${YELLOW}Instalando librerías Python desde requirements.txt...${NC}"
+    if [ -f "requirements.txt" ]; then
+        pip install -r requirements.txt
+        echo -e "${GREEN}✓ Dependencias instaladas desde requirements.txt${NC}"
+    else
+        # Fallback: instalar versiones específicas manualmente
+        echo -e "${YELLOW}⚠️  requirements.txt no encontrado, instalando versiones específicas...${NC}"
+        pip install "Flask>=2.0.0,<3.0.0"
+        pip install "Flask-Cors>=3.0.10"
+        pip install "Flask-SocketIO>=4.3.0,<5.0.0"
+        pip install "python-socketio>=4.6.0,<5.0.0"
+        pip install "python-engineio>=3.14.0,<4.0.0"
+        pip install "pyserial>=3.5"
+        pip install "python-dotenv>=0.19.0"
+        echo -e "${GREEN}✓ Dependencias instaladas manualmente${NC}"
+    fi
 
     echo -e "${GREEN}✓ Dependencias instaladas${NC}"
 else
@@ -238,8 +261,10 @@ echo -e "${GREEN}===============================================================
 echo ""
 echo -e "${BLUE}🚀 Para iniciar el sistema:${NC}"
 echo ""
-echo "  cd $INSTALL_DIR/gnssai"
-echo "  python3 gps_server.py"
+echo "  cd $INSTALL_DIR"
+echo "  source venv/bin/activate"
+echo "  cd gnssai"
+echo "  python gps_server.py"
 echo ""
 echo -e "${BLUE}📱 Accede desde tu navegador:${NC}"
 echo ""
@@ -267,11 +292,16 @@ if [[ $REPLY =~ ^[Ss]$ ]]; then
     echo ""
     echo -e "${GREEN}🚀 Iniciando servidor GPS...${NC}"
     echo ""
-    cd "$INSTALL_DIR/gnssai"
-    python3 gps_server.py
+    cd "$INSTALL_DIR"
+    source venv/bin/activate
+    cd gnssai
+    python gps_server.py
 else
     echo ""
     echo -e "${GREEN}✨ Para iniciar manualmente:${NC}"
-    echo "  cd $INSTALL_DIR/gnssai && python3 gps_server.py"
+    echo "  cd $INSTALL_DIR"
+    echo "  source venv/bin/activate"
+    echo "  cd gnssai"
+    echo "  python gps_server.py"
     echo ""
 fi

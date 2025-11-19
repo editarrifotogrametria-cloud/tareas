@@ -36,14 +36,19 @@ cd ~
 git clone -b claude/setup-gps-pi-zero-01LgJUMddr4CUmQT9vC1Hq9D \
   https://github.com/editarrifotogrametria-cloud/tareas.git gnss-system
 
-# 2. Instalar dependencias
+# 2. Instalar dependencias del sistema
+cd gnss-system
 sudo apt-get update
-sudo apt-get install -y python3-pip python3-serial
-pip3 install flask flask-socketio pyserial
+sudo apt-get install -y python3-pip python3-serial python3-venv
 
-# 3. Iniciar servidor
-cd ~/gnss-system/gnssai
-python3 gps_server.py
+# 3. Crear entorno virtual e instalar dependencias Python
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 4. Iniciar servidor
+cd gnssai
+python gps_server.py
 ```
 
 ---
