@@ -1,0 +1,106 @@
+{
+  "receptor": {
+    "tipo": "Comnav",
+    "modelo": "T300",
+    "conexion": {
+      "tipo": "WiFi",
+      "ip": "192.168.1.100",
+      "puerto": 8080,
+      "timeout": 5000
+    },
+    "bluetooth": {
+      "nombre": "Comnav-GNSS",
+      "uuid": "00001101-0000-1000-8000-00805F9B34FB"
+    }
+  },
+  
+  "gnss": {
+    "constelaciones": {
+      "gps": true,
+      "glonass": true,
+      "galileo": true,
+      "beidou": true,
+      "qzss": false,
+      "sbas": false
+    },
+    "tasa_actualizacion": 5,
+    "mascara_elevacion": 15,
+    "modo_posicionamiento": "kinematic"
+  },
+  
+  "rtk": {
+    "habilitado": true,
+    "fuente": "ntrip",
+    "ntrip": {
+      "host": "rtk2go.com",
+      "puerto": 2101,
+      "usuario": "tu_email@example.com",
+      "password": "",
+      "mountpoint": "RTCM32_GG"
+    },
+    "base_local": {
+      "ip": "192.168.1.200",
+      "puerto": 5000
+    }
+  },
+  
+  "toma_puntos": {
+    "precision_minima": {
+      "horizontal": 0.02,
+      "vertical": 0.05
+    },
+    "satelites_minimos": 8,
+    "solucion_requerida": "fix",
+    "tiempo_espera": 3,
+    "averaging": {
+      "habilitado": false,
+      "numero_epocas": 60
+    }
+  },
+  
+  "exportacion": {
+    "formatos": ["csv", "kml", "geojson"],
+    "sistema_coordenadas": "WGS84",
+    "zona_utm": "18S",
+    "separador_csv": ",",
+    "precision_decimales": {
+      "latitud": 8,
+      "longitud": 8,
+      "altura": 3
+    }
+  },
+  
+  "interfaz": {
+    "idioma": "es",
+    "tema": "light",
+    "unidades": {
+      "coordenadas": "decimal",
+      "altura": "metros",
+      "distancia": "metros"
+    },
+    "mostrar": {
+      "skyplot": true,
+      "snr_bars": true,
+      "baseline": true,
+      "dop": true
+    }
+  },
+  
+  "almacenamiento": {
+    "auto_guardar": true,
+    "intervalo_guardar": 300,
+    "backup_automatico": true,
+    "ruta_exportacion": "./exports"
+  },
+  
+  "notificaciones": {
+    "sonido": true,
+    "vibrar": false,
+    "alertas": {
+      "perdida_fix": true,
+      "satelites_bajos": true,
+      "precision_baja": true,
+      "bateria_baja": true
+    }
+  }
+}

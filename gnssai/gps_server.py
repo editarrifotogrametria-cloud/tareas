@@ -101,7 +101,7 @@ def index():
                 padding: 20px;
             }
             .container {
-                max-width: 800px;
+                max-width: 1200px;
                 width: 100%;
             }
             .header {
@@ -119,7 +119,7 @@ def index():
             }
             .cards {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
                 gap: 24px;
             }
             .card {
@@ -142,13 +142,14 @@ def index():
                 margin-bottom: 16px;
             }
             .card h2 {
-                font-size: 24px;
+                font-size: 22px;
                 margin-bottom: 12px;
                 color: #333;
             }
             .card p {
                 color: #666;
                 line-height: 1.6;
+                font-size: 14px;
             }
             .badge {
                 display: inline-block;
@@ -160,6 +161,9 @@ def index():
                 font-weight: 600;
                 margin-top: 12px;
             }
+            .badge-featured {
+                background: #4CAF50;
+            }
         </style>
     </head>
     <body>
@@ -169,17 +173,23 @@ def index():
                 <p>Interfaces profesionales para recolección y monitoreo GPS</p>
             </div>
             <div class="cards">
+                <a href="/funcionable" class="card">
+                    <div class="card-icon">⭐</div>
+                    <h2>GNSS Point Collector</h2>
+                    <p>Aplicación web profesional de Comnav para captura de puntos GNSS con RTK, NTRIP, y gestión de proyectos completa.</p>
+                    <span class="badge badge-featured">FUNCIONABLE</span>
+                </a>
                 <a href="/comnav" class="card">
                     <div class="card-icon">⚙️</div>
                     <h2>ComNav Control</h2>
                     <p>Control completo del módulo ComNav K222 con comandos, configuración INS/TILT, y monitoreo en tiempo real.</p>
-                    <span class="badge">NUEVO</span>
+                    <span class="badge">CONTROL</span>
                 </a>
                 <a href="/professional" class="card">
                     <div class="card-icon">🛰️</div>
                     <h2>GPS Professional</h2>
                     <p>Interfaz completa con Proyectos, DATUM, Tomar Puntos, Replantear, PPP, TILT, y Cámara con EXIF. Todo en uno.</p>
-                    <span class="badge">RECOMENDADO</span>
+                    <span class="badge">PROFESIONAL</span>
                 </a>
                 <a href="/collector" class="card">
                     <div class="card-icon">📍</div>
@@ -303,6 +313,33 @@ def comnav_command():
             "message": str(e)
         }), 500
 
+@app.route("/funcionable")
+def funcionable():
+    """Serve the FUNCIONABLE GNSS Point Collector."""
+    try:
+        funcionable_path = os.path.join(os.path.dirname(BASE_DIR), "funcionable", "index.html")
+        return send_file(funcionable_path)
+    except Exception as e:
+        return f"Error loading FUNCIONABLE interface: {str(e)}", 500
+
+@app.route("/funcionable/static/css/<path:filename>")
+def funcionable_css(filename):
+    """Serve FUNCIONABLE CSS files."""
+    funcionable_static = os.path.join(os.path.dirname(BASE_DIR), "funcionable", "static", "css")
+    return send_from_directory(funcionable_static, filename)
+
+@app.route("/funcionable/static/js/<path:filename>")
+def funcionable_js(filename):
+    """Serve FUNCIONABLE JavaScript files."""
+    funcionable_static = os.path.join(os.path.dirname(BASE_DIR), "funcionable", "static", "js")
+    return send_from_directory(funcionable_static, filename)
+
+@app.route("/funcionable/config.example.json")
+def funcionable_config():
+    """Serve FUNCIONABLE config example."""
+    funcionable_path = os.path.join(os.path.dirname(BASE_DIR), "funcionable")
+    return send_from_directory(funcionable_path, "config.example.json")
+
 @app.route("/static/<path:filename>")
 def static_files(filename):
     """Serve static files."""
@@ -344,7 +381,8 @@ def main():
     print("🛰️  GPS Server - Professional Web Interface")
     print("=" * 70)
     print(f"🏠 Home:              http://0.0.0.0:5000")
-    print(f"⚙️ ComNav Control:    http://0.0.0.0:5000/comnav         ⭐ NUEVO")
+    print(f"⭐ FUNCIONABLE:       http://0.0.0.0:5000/funcionable    ✨ DESTACADO")
+    print(f"⚙️ ComNav Control:    http://0.0.0.0:5000/comnav         🎯 TILT")
     print(f"🎯 Professional:      http://0.0.0.0:5000/professional")
     print(f"📍 Collector:         http://0.0.0.0:5000/collector")
     print(f"📊 Dashboard:         http://0.0.0.0:5000/dashboard")
@@ -352,7 +390,8 @@ def main():
     print(f"📡 ComNav API:        http://0.0.0.0:5000/api/comnav/command")
     print(f"💾 Data Source:       {JSON_DATA_FILE}")
     print("=" * 70)
-    print("✨ NUEVO: ComNav K222 Control con comandos INS/TILT en tiempo real")
+    print("⭐ FUNCIONABLE: Aplicación web profesional Comnav completa")
+    print("✨ ComNav Control: K222 con soporte INS/TILT avanzado")
     print("✅ Server running. Press Ctrl+C to stop.")
     print("")
 

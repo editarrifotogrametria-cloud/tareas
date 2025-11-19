@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GNSS Point Collector - Comnav</title>
+    
+    <!-- CSS Vendors -->
+    <link rel="stylesheet" href="./static/css/chunk-vendors.css">
+    
+    <!-- CSS Principal -->
+    <link rel="stylesheet" href="./static/css/index.css">
+    
+    <style>
+        /* Estilos adicionales para la app */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        #app {
+            height: 100%;
+        }
+        
+        /* Loading screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-screen.hidden {
+            display: none;
+        }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1890ff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            color: #666;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loader"></div>
+        <div class="loading-text">Cargando GNSS Point Collector...</div>
+    </div>
+
+    <!-- App Container -->
+    <div id="app"></div>
+
+    <!-- Scripts Vendors (librerías como Vue, Ant Design, etc.) -->
+    <script src="./static/js/chunk-vendors.js"></script>
+    
+    <!-- Script Común -->
+    <script src="./static/js/chunk-common.js"></script>
+    
+    <!-- Script Principal -->
+    <script src="./static/js/index.js"></script>
+
+    <script>
+        // Ocultar loading screen cuando la app esté lista
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('loadingScreen').classList.add('hidden');
+            }, 1000);
+        });
+        
+        // Manejo básico de errores
+        window.addEventListener('error', function(e) {
+            console.error('Error en la aplicación:', e.error);
+        });
+    </script>
+</body>
+</html>

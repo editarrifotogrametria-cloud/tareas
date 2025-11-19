@@ -79,6 +79,12 @@ class SmartProcessor:
             "heading": 0.0,  # rumbo/azimut del módulo
             "angle": 0.0,    # ángulo total de inclinación
             "status": "NONE",
+            "velocity_n": 0.0,  # velocidad norte (m/s)
+            "velocity_e": 0.0,  # velocidad este (m/s)
+            "velocity_d": 0.0,  # velocidad down (m/s)
+            "velocity_total": 0.0,  # velocidad total (m/s)
+            "quality": 0,    # calidad de la solución INS
+            "last_update": 0.0,  # timestamp última actualización
         }
 
         # ML
@@ -247,6 +253,12 @@ class SmartProcessor:
                 "heading": self.tilt["heading"],
                 "angle": self.tilt["angle"],
                 "status": self.tilt["status"],
+                "velocity_n": self.tilt["velocity_n"],
+                "velocity_e": self.tilt["velocity_e"],
+                "velocity_d": self.tilt["velocity_d"],
+                "velocity_total": self.tilt["velocity_total"],
+                "quality": self.tilt["quality"],
+                "last_update": self.tilt["last_update"],
             },
         }
 
@@ -450,7 +462,8 @@ class SmartProcessor:
             parts = line.split(",")
             try:
                 # El formato puede variar, pero típicamente:
-                # heading está en campo 13, pitch en 14, roll en 15
+                # $GPNAV,time,lat,lat_dir,lon,lon_dir,quality,sats,hdop,alt,geoid,dgps_age,dgps_id,heading,pitch,roll,vel_n,vel_e,vel_d*checksum
+                # heading está en campo 13, pitch en 14, roll en 15, vel_n en 16, vel_e en 17, vel_d en 18
                 if len(parts) >= 16:
                     heading = float(parts[13]) if parts[13] else 0.0
                     pitch = float(parts[14]) if parts[14] else 0.0
@@ -461,7 +474,25 @@ class SmartProcessor:
                     self.tilt["pitch"] = pitch
                     self.tilt["roll"] = roll
                     self.tilt["angle"] = (abs(roll) ** 2 + abs(pitch) ** 2) ** 0.5
+
+                    # Capturar velocidades si están disponibles
+                    if len(parts) >= 19:
+                        vel_n = float(parts[16]) if parts[16] else 0.0
+                        vel_e = float(parts[17]) if parts[17] else 0.0
+                        vel_d_field = parts[18].split("*")[0] if "*" in parts[18] else parts[18]
+                        vel_d = float(vel_d_field) if vel_d_field else 0.0
+
+                        self.tilt["velocity_n"] = vel_n
+                        self.tilt["velocity_e"] = vel_e
+                        self.tilt["velocity_d"] = vel_d
+                        self.tilt["velocity_total"] = (vel_n**2 + vel_e**2 + vel_d**2) ** 0.5
+
+                    # Capturar calidad si está disponible
+                    if len(parts) >= 7 and parts[6]:
+                        self.tilt["quality"] = int(parts[6])
+
                     self.tilt["status"] = "GPNAV"
+                    self.tilt["last_update"] = time.time()
                     return
             except (ValueError, IndexError):
                 pass

@@ -411,6 +411,20 @@
                         <div class="tilt-value" id="roll">0.0°</div>
                     </div>
                 </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div class="tilt-display" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); font-size: 12px; padding: 10px;">
+                        <div>VEL N</div>
+                        <div style="font-size: 20px; font-weight: bold;" id="velN">0.0 m/s</div>
+                    </div>
+                    <div class="tilt-display" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); font-size: 12px; padding: 10px;">
+                        <div>VEL E</div>
+                        <div style="font-size: 20px; font-weight: bold;" id="velE">0.0 m/s</div>
+                    </div>
+                    <div class="tilt-display" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); font-size: 12px; padding: 10px;">
+                        <div>VEL TOTAL</div>
+                        <div style="font-size: 20px; font-weight: bold;" id="velTotal">0.0 m/s</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -654,6 +668,11 @@
                 document.getElementById('heading').textContent = (data.tilt.heading || 0).toFixed(1) + '°';
                 document.getElementById('pitch').textContent = (data.tilt.pitch || 0).toFixed(1) + '°';
                 document.getElementById('roll').textContent = (data.tilt.roll || 0).toFixed(1) + '°';
+
+                // Velocidades
+                document.getElementById('velN').textContent = (data.tilt.velocity_n || 0).toFixed(2) + ' m/s';
+                document.getElementById('velE').textContent = (data.tilt.velocity_e || 0).toFixed(2) + ' m/s';
+                document.getElementById('velTotal').textContent = (data.tilt.velocity_total || 0).toFixed(2) + ' m/s';
 
                 // Brújula
                 const heading = data.tilt.heading || 0;
