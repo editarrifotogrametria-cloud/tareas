@@ -1,0 +1,38 @@
+# GNSS.AI - Dependencias Python para Raspberry Pi Zero 2W
+# ComNav K222 - Sistema de Captura de Puntos Geodésicos
+
+# ===== CORE (REQUERIDO) =====
+pyserial>=3.4
+
+# Flask y Socket.IO (versiones compatibles)
+Flask>=2.0.0,<3.0.0
+flask-socketio>=5.0.0,<6.0.0
+python-socketio>=5.0.0,<6.0.0
+python-engineio>=4.0.0,<5.0.0
+
+# ===== BLUETOOTH (OPCIONAL) =====
+# PyBluez puede fallar en algunos sistemas, no es crítico
+# Descomentar si necesitas Bluetooth SPP:
+# pybluez
+
+# ===== ML (OPCIONAL - NO RECOMENDADO PARA PI ZERO) =====
+# ADVERTENCIA: numpy/pandas/sklearn pueden tomar 30-60 minutos en instalar
+# y consumir mucha CPU en Pi Zero 2W. Solo instalar si es necesario.
+# Descomentar si necesitas ML:
+# numpy>=1.19.0
+# pandas>=1.1.0
+# scikit-learn>=0.24.0
+# joblib>=1.0.0
+
+# ===== NOTAS DE INSTALACIÓN =====
+#
+# Instalación básica (sin ML):
+#   pip3 install --user -r requirements.txt
+#
+# Instalación completa (con ML, lento en Pi Zero):
+#   Descomentar líneas de ML arriba y luego:
+#   pip3 install --user -r requirements.txt
+#
+# O usar el script automatizado:
+#   chmod +x install_dependencies.sh
+#   ./install_dependencies.sh
