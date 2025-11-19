@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComNav K222 - Control & Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #1e3c72;
+            border-bottom: 2px solid #2a5298;
+            padding-bottom: 10px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background: #4CAF50;
+            box-shadow: 0 0 8px #4CAF50;
+        }
+
+        .status-disconnected {
+            background: #f44336;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .data-value {
+            font-family: 'Courier New', monospace;
+            color: #1e3c72;
+            font-weight: bold;
+        }
+
+        .tilt-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .tilt-value {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .compass {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            position: relative;
+            background: radial-gradient(circle, #fff 0%, #e0e0e0 100%);
+            border-radius: 50%;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .compass-needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 80px;
+            background: linear-gradient(to bottom, #f44336 0%, #f44336 50%, #333 50%, #333 100%);
+            transform-origin: center bottom;
+            transform: translate(-50%, -100%);
+            transition: transform 0.3s ease;
+        }
+
+        .compass-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background: #333;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        .compass-label {
+            position: absolute;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .compass-n { top: 10px; left: 50%; transform: translateX(-50%); color: #f44336; }
+        .compass-s { bottom: 10px; left: 50%; transform: translateX(-50%); }
+        .compass-e { right: 10px; top: 50%; transform: translateY(-50%); }
+        .compass-w { left: 10px; top: 50%; transform: translateY(-50%); }
+
+        .command-section {
+            margin: 15px 0;
+        }
+
+        .command-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .console {
+            background: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 15px;
+            border-radius: 6px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .console-line {
+            margin: 2px 0;
+        }
+
+        .console-cmd {
+            color: #00aaff;
+        }
+
+        .console-error {
+            color: #ff5555;
+        }
+
+        .console-success {
+            color: #50fa7b;
+        }
+
+        .quality-indicator {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .quality-rtk-fixed {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .quality-rtk-float {
+            background: #ff9800;
+            color: white;
+        }
+
+        .quality-dgps {
+            background: #2196F3;
+            color: white;
+        }
+
+        .quality-gps {
+            background: #9E9E9E;
+            color: white;
+        }
+
+        .quality-none {
+            background: #f44336;
+            color: white;
+        }
+
+        .satellite-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .satellite-item {
+            background: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        .sat-prn {
+            font-weight: bold;
+            color: #1e3c72;
+        }
+
+        .sat-snr {
+            color: #666;
+        }
+
+        .settings-group {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+        }
+
+        .settings-group h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #1e3c72;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px 0;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛰️ ComNav K222 Control & Monitor</h1>
+            <p>Sistema profesional de control GNSS con soporte INS/TILT</p>
+        </header>
+
+        <div class="grid">
+            <!-- Estado GPS -->
+            <div class="card">
+                <h2>📡 Estado GPS/GNSS</h2>
+                <div class="data-row">
+                    <span class="data-label">Conexión:</span>
+                    <span class="data-value">
+                        <span class="status-indicator status-connected" id="statusIndicator"></span>
+                        <span id="statusText">Conectado</span>
+                    </span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Calidad:</span>
+                    <span class="data-value">
+                        <span class="quality-indicator quality-rtk-fixed" id="qualityBadge">RTK FIXED</span>
+                    </span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Satélites:</span>
+                    <span class="data-value" id="satellites">12</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">HDOP:</span>
+                    <span class="data-value" id="hdop">1.2</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Precisión:</span>
+                    <span class="data-value" id="accuracy">2 cm</span>
+                </div>
+            </div>
+
+            <!-- Posición -->
+            <div class="card">
+                <h2>📍 Posición</h2>
+                <div class="data-row">
+                    <span class="data-label">Latitud:</span>
+                    <span class="data-value" id="latitude">0.000000°</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Longitud:</span>
+                    <span class="data-value" id="longitude">0.000000°</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Altitud:</span>
+                    <span class="data-value" id="altitude">0.0 m</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Última actualización:</span>
+                    <span class="data-value" id="lastUpdate">--:--:--</span>
+                </div>
+            </div>
+
+            <!-- Actitud/TILT -->
+            <div class="card">
+                <h2>🎯 Actitud (TILT/INS)</h2>
+                <div class="tilt-display">
+                    <div>HEADING</div>
+                    <div class="tilt-value" id="heading">0.0°</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="tilt-display" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                        <div>PITCH</div>
+                        <div class="tilt-value" id="pitch">0.0°</div>
+                    </div>
+                    <div class="tilt-display" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
+                        <div>ROLL</div>
+                        <div class="tilt-value" id="roll">0.0°</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Brújula -->
+        <div class="card" style="max-width: 300px; margin: 0 auto 20px auto;">
+            <h2 style="text-align: center;">🧭 Brújula</h2>
+            <div class="compass">
+                <div class="compass-label compass-n">N</div>
+                <div class="compass-label compass-e">E</div>
+                <div class="compass-label compass-s">S</div>
+                <div class="compass-label compass-w">W</div>
+                <div class="compass-needle" id="compassNeedle"></div>
+                <div class="compass-center"></div>
+            </div>
+            <div style="text-align: center; font-size: 24px; font-weight: bold; color: #1e3c72;">
+                <span id="compassHeading">0.0°</span>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Panel de Comandos -->
+            <div class="card">
+                <h2>⚙️ Control ComNav</h2>
+
+                <div class="info-box">
+                    <strong>ℹ️ Puerto Serie:</strong> <span id="serialPort">/dev/serial0</span> @ 115200 baud
+                </div>
+
+                <div class="command-section">
+                    <h3 style="margin-bottom: 10px;">Comandos Rápidos NMEA</h3>
+                    <div class="command-grid">
+                        <button class="btn btn-success" onclick="sendCommand('log com1 gpgga ontime 1')">GGA (1Hz)</button>
+                        <button class="btn btn-success" onclick="sendCommand('log com1 gprmc ontime 1')">RMC (1Hz)</button>
+                        <button class="btn btn-success" onclick="sendCommand('log com1 gpgsv ontime 5')">GSV (0.2Hz)</button>
+                        <button class="btn btn-success" onclick="sendCommand('log com1 gpnav ontime 1')">GPNAV (Actitud)</button>
+                        <button class="btn btn-success" onclick="sendCommand('log com1 gpybm ontime 1')">GPYBM (Heading)</button>
+                        <button class="btn btn-warning" onclick="sendCommand('unlogall')">Detener Todo</button>
+                    </div>
+                </div>
+
+                <div class="command-section">
+                    <h3 style="margin-bottom: 10px;">Control INS/TILT</h3>
+                    <div class="warning-box">
+                        <strong>⚠️ Nota:</strong> El módulo K222/K803/K823 debe tener IMU integrado
+                    </div>
+                    <div class="command-grid">
+                        <button class="btn btn-success" onclick="enableINS()">Activar INS</button>
+                        <button class="btn btn-danger" onclick="disableINS()">Desactivar INS</button>
+                        <button class="btn" onclick="sendCommand('log sysconfig')">Ver Config</button>
+                        <button class="btn" onclick="sendCommand('saveconfig')">Guardar Config</button>
+                    </div>
+                </div>
+
+                <div class="command-section">
+                    <h3 style="margin-bottom: 10px;">Configuración IMU</h3>
+                    <label>Tipo de Eje IMU (1-8):</label>
+                    <select id="imuAxis">
+                        <option value="1">Tipo 1</option>
+                        <option value="2">Tipo 2</option>
+                        <option value="3">Tipo 3</option>
+                        <option value="4">Tipo 4</option>
+                        <option value="5">Tipo 5</option>
+                        <option value="6" selected>Tipo 6 (Default)</option>
+                        <option value="7">Tipo 7</option>
+                        <option value="8">Tipo 8</option>
+                    </select>
+                    <button class="btn" onclick="configureIMU()">Configurar IMU</button>
+                </div>
+
+                <div class="command-section">
+                    <h3 style="margin-bottom: 10px;">Comando Personalizado</h3>
+                    <input type="text" id="customCommand" placeholder="Ej: log com1 gpgga ontime 1">
+                    <button class="btn" onclick="sendCustomCommand()">Enviar Comando</button>
+                </div>
+            </div>
+
+            <!-- Consola -->
+            <div class="card">
+                <h2>💻 Consola de Comandos</h2>
+                <div class="console" id="console">
+                    <div class="console-line console-success">🚀 Sistema iniciado</div>
+                    <div class="console-line">Esperando comandos...</div>
+                </div>
+                <button class="btn" onclick="clearConsole()" style="margin-top: 10px;">Limpiar Consola</button>
+            </div>
+
+            <!-- Satélites -->
+            <div class="card">
+                <h2>🛰️ Satélites Visibles</h2>
+                <div class="data-row">
+                    <span class="data-label">Total:</span>
+                    <span class="data-value" id="satTotal">0</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">LOS (Buena señal):</span>
+                    <span class="data-value" style="color: #4CAF50;" id="satLOS">0</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Multipath:</span>
+                    <span class="data-value" style="color: #ff9800;" id="satMultipath">0</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">NLOS (Señal débil):</span>
+                    <span class="data-value" style="color: #f44336;" id="satNLOS">0</span>
+                </div>
+                <div style="margin-top: 15px;">
+                    <h3 style="font-size: 14px; margin-bottom: 10px;">Detalle:</h3>
+                    <div class="satellite-grid" id="satelliteGrid">
+                        <!-- Satélites se llenarán aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuración Avanzada -->
+        <div class="card">
+            <h2>🔧 Configuración Avanzada</h2>
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                <div class="settings-group">
+                    <h3>Frecuencia de Actualización</h3>
+                    <label>Tasa de Posición (Hz):</label>
+                    <select id="posRate">
+                        <option value="1">1 Hz</option>
+                        <option value="5" selected>5 Hz</option>
+                        <option value="10">10 Hz</option>
+                        <option value="20">20 Hz</option>
+                    </select>
+                    <button class="btn" onclick="setPositionRate()" style="margin-top: 10px;">Aplicar</button>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Elevación Mínima</h3>
+                    <label>Ángulo mínimo de satélites (°):</label>
+                    <input type="number" id="minElev" value="10" min="0" max="90">
+                    <button class="btn" onclick="setElevationMask()" style="margin-top: 10px;">Aplicar</button>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Offset de Actitud</h3>
+                    <label>Heading Offset (°):</label>
+                    <input type="number" id="headingOffset" value="0" step="0.1">
+                    <label>Pitch Offset (°):</label>
+                    <input type="number" id="pitchOffset" value="0" step="0.1">
+                    <button class="btn" onclick="setAttitudeOffset()" style="margin-top: 10px;">Aplicar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let ws = null;
+        let updateInterval = null;
+
+        // Conectar a WebSocket
+        function connectWebSocket() {
+            try {
+                ws = new WebSocket(`ws://${window.location.hostname}:5000/gnss`);
+
+                ws.onopen = () => {
+                    log('Conectado al servidor WebSocket', 'success');
+                    updateStatus(true);
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        updateUI(data);
+                    } catch (e) {
+                        console.error('Error parsing WebSocket data:', e);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    log('Error en WebSocket: ' + error, 'error');
+                    updateStatus(false);
+                };
+
+                ws.onclose = () => {
+                    log('WebSocket desconectado, reintentando...', 'error');
+                    updateStatus(false);
+                    setTimeout(connectWebSocket, 3000);
+                };
+            } catch (e) {
+                console.error('Error creating WebSocket:', e);
+                updateStatus(false);
+            }
+        }
+
+        // Actualizar datos vía API REST
+        function updateData() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => updateUI(data))
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    updateStatus(false);
+                });
+        }
+
+        // Actualizar interfaz
+        function updateUI(data) {
+            if (!data) return;
+
+            // Posición
+            if (data.position) {
+                document.getElementById('latitude').textContent = (data.position.lat || 0).toFixed(6) + '°';
+                document.getElementById('longitude').textContent = (data.position.lon || 0).toFixed(6) + '°';
+                document.getElementById('altitude').textContent = (data.position.alt || 0).toFixed(1) + ' m';
+            }
+
+            // Estado GPS
+            document.getElementById('satellites').textContent = data.satellites || 0;
+            document.getElementById('hdop').textContent = (data.hdop || 0).toFixed(1);
+            document.getElementById('accuracy').textContent = (data.estimated_accuracy || 0).toFixed(0) + ' cm';
+
+            // Calidad
+            const quality = data.quality || 0;
+            const qualityBadge = document.getElementById('qualityBadge');
+            qualityBadge.className = 'quality-indicator ';
+
+            if (quality === 4) {
+                qualityBadge.textContent = 'RTK FIXED';
+                qualityBadge.classList.add('quality-rtk-fixed');
+            } else if (quality === 5) {
+                qualityBadge.textContent = 'RTK FLOAT';
+                qualityBadge.classList.add('quality-rtk-float');
+            } else if (quality === 2) {
+                qualityBadge.textContent = 'DGPS';
+                qualityBadge.classList.add('quality-dgps');
+            } else if (quality === 1) {
+                qualityBadge.textContent = 'GPS';
+                qualityBadge.classList.add('quality-gps');
+            } else {
+                qualityBadge.textContent = 'SIN FIX';
+                qualityBadge.classList.add('quality-none');
+            }
+
+            // TILT/Actitud
+            if (data.tilt) {
+                document.getElementById('heading').textContent = (data.tilt.heading || 0).toFixed(1) + '°';
+                document.getElementById('pitch').textContent = (data.tilt.pitch || 0).toFixed(1) + '°';
+                document.getElementById('roll').textContent = (data.tilt.roll || 0).toFixed(1) + '°';
+
+                // Brújula
+                const heading = data.tilt.heading || 0;
+                document.getElementById('compassHeading').textContent = heading.toFixed(1) + '°';
+                document.getElementById('compassNeedle').style.transform =
+                    `translate(-50%, -100%) rotate(${heading}deg)`;
+            }
+
+            // Satélites
+            if (data.satellites_detail && Array.isArray(data.satellites_detail)) {
+                updateSatellites(data.satellites_detail);
+            }
+
+            // Estadísticas de satélites
+            document.getElementById('satTotal').textContent = data.satellites || 0;
+            document.getElementById('satLOS').textContent = data.los_sats || 0;
+            document.getElementById('satMultipath').textContent = data.multipath_sats || 0;
+            document.getElementById('satNLOS').textContent = data.nlos_sats || 0;
+
+            // Última actualización
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+
+            updateStatus(true);
+        }
+
+        // Actualizar satélites
+        function updateSatellites(satellites) {
+            const grid = document.getElementById('satelliteGrid');
+            grid.innerHTML = '';
+
+            satellites.forEach(sat => {
+                const div = document.createElement('div');
+                div.className = 'satellite-item';
+
+                let statusColor = '#4CAF50';
+                if (sat.status === 'multipath') statusColor = '#ff9800';
+                if (sat.status === 'nlos') statusColor = '#f44336';
+
+                div.innerHTML = `
+                    <div class="sat-prn" style="color: ${statusColor}">${sat.prn}</div>
+                    <div class="sat-snr">SNR: ${sat.snr || 0}</div>
+                    <div style="font-size: 9px; color: #999;">${sat.constellation || 'GPS'}</div>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        // Enviar comando al ComNav
+        async function sendCommand(command) {
+            log('⚡ Enviando: ' + command, 'cmd');
+
+            try {
+                const response = await fetch('/api/comnav/command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ command: command })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    log('✅ Comando enviado correctamente', 'success');
+                    if (result.response) {
+                        log('📥 Respuesta: ' + result.response, 'success');
+                    }
+                } else {
+                    log('❌ Error: ' + result.message, 'error');
+                }
+            } catch (error) {
+                log('❌ Error de red: ' + error.message, 'error');
+            }
+        }
+
+        // Comando personalizado
+        function sendCustomCommand() {
+            const command = document.getElementById('customCommand').value.trim();
+            if (command) {
+                sendCommand(command);
+                document.getElementById('customCommand').value = '';
+            }
+        }
+
+        // Activar INS
+        function enableINS() {
+            const axis = document.getElementById('imuAxis').value;
+            log('🔄 Activando modo INS con eje tipo ' + axis + '...', 'cmd');
+            sendCommand(`INSMODE ENABLE ${axis}`);
+            sendCommand('saveconfig');
+        }
+
+        // Desactivar INS
+        function disableINS() {
+            log('🔄 Desactivando modo INS...', 'cmd');
+            sendCommand('INSMODE DISABLE');
+            sendCommand('saveconfig');
+        }
+
+        // Configurar IMU
+        function configureIMU() {
+            const axis = document.getElementById('imuAxis').value;
+            log('⚙️ Configurando IMU con eje tipo ' + axis + '...', 'cmd');
+            sendCommand(`INSMODE ENABLE ${axis}`);
+
+            // Habilitar mensajes de actitud
+            setTimeout(() => {
+                sendCommand('log com1 gpnav ontime 1');
+                sendCommand('log com1 gpybm ontime 1');
+                sendCommand('saveconfig');
+            }, 500);
+        }
+
+        // Configurar tasa de posición
+        function setPositionRate() {
+            const rate = document.getElementById('posRate').value;
+            const interval = 1.0 / parseFloat(rate);
+            log(`⚙️ Configurando tasa de posición a ${rate} Hz...`, 'cmd');
+            sendCommand(`log com1 gpgga ontime ${interval.toFixed(2)}`);
+            sendCommand(`log com1 gprmc ontime ${interval.toFixed(2)}`);
+        }
+
+        // Configurar máscara de elevación
+        function setElevationMask() {
+            const elev = document.getElementById('minElev').value;
+            log(`⚙️ Configurando elevación mínima a ${elev}°...`, 'cmd');
+            sendCommand(`ecutoff ${elev}`);
+            sendCommand('saveconfig');
+        }
+
+        // Configurar offset de actitud
+        function setAttitudeOffset() {
+            const heading = document.getElementById('headingOffset').value;
+            const pitch = document.getElementById('pitchOffset').value;
+            log(`⚙️ Configurando offset: Heading=${heading}°, Pitch=${pitch}°...`, 'cmd');
+            sendCommand(`HEADINGOFFSET ${heading} ${pitch}`);
+            sendCommand('saveconfig');
+        }
+
+        // Actualizar estado de conexión
+        function updateStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+
+            if (connected) {
+                indicator.className = 'status-indicator status-connected';
+                text.textContent = 'Conectado';
+            } else {
+                indicator.className = 'status-indicator status-disconnected';
+                text.textContent = 'Desconectado';
+            }
+        }
+
+        // Log a consola
+        function log(message, type = '') {
+            const console = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = 'console-line';
+
+            if (type === 'cmd') {
+                line.className += ' console-cmd';
+            } else if (type === 'error') {
+                line.className += ' console-error';
+            } else if (type === 'success') {
+                line.className += ' console-success';
+            }
+
+            const timestamp = new Date().toLocaleTimeString();
+            line.textContent = `[${timestamp}] ${message}`;
+
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        // Limpiar consola
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '';
+            log('Consola limpiada', 'success');
+        }
+
+        // Inicialización
+        window.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Inicializando ComNav K222 Control...', 'success');
+
+            // Intentar WebSocket primero
+            connectWebSocket();
+
+            // Fallback a polling si WebSocket falla
+            updateInterval = setInterval(updateData, 1000);
+
+            // Actualización inicial
+            updateData();
+
+            log('✅ Sistema listo', 'success');
+            log('ℹ️ Envíe comandos para configurar el módulo ComNav', '');
+        });
+
+        // Manejador de Enter en comando personalizado
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('customCommand').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendCustomCommand();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

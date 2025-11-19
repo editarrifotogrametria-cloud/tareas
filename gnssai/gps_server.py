@@ -169,6 +169,12 @@ def index():
                 <p>Interfaces profesionales para recolección y monitoreo GPS</p>
             </div>
             <div class="cards">
+                <a href="/comnav" class="card">
+                    <div class="card-icon">⚙️</div>
+                    <h2>ComNav Control</h2>
+                    <p>Control completo del módulo ComNav K222 con comandos, configuración INS/TILT, y monitoreo en tiempo real.</p>
+                    <span class="badge">NUEVO</span>
+                </a>
                 <a href="/professional" class="card">
                     <div class="card-icon">🛰️</div>
                     <h2>GPS Professional</h2>
@@ -214,6 +220,14 @@ def professional():
         return send_file(os.path.join(BASE_DIR, "gps_professional.html"))
     except Exception as e:
         return f"Error loading professional interface: {str(e)}", 500
+
+@app.route("/comnav")
+def comnav_control():
+    """Serve the ComNav K222 Control & Monitor interface."""
+    try:
+        return send_file(os.path.join(BASE_DIR, "comnav_control.html"))
+    except Exception as e:
+        return f"Error loading ComNav control interface: {str(e)}", 500
 
 @app.route("/dashboard")
 def dashboard():
@@ -330,13 +344,15 @@ def main():
     print("🛰️  GPS Server - Professional Web Interface")
     print("=" * 70)
     print(f"🏠 Home:              http://0.0.0.0:5000")
-    print(f"🎯 Professional:      http://0.0.0.0:5000/professional  ⭐ NUEVO")
+    print(f"⚙️ ComNav Control:    http://0.0.0.0:5000/comnav         ⭐ NUEVO")
+    print(f"🎯 Professional:      http://0.0.0.0:5000/professional")
     print(f"📍 Collector:         http://0.0.0.0:5000/collector")
     print(f"📊 Dashboard:         http://0.0.0.0:5000/dashboard")
     print(f"📡 API:               http://0.0.0.0:5000/api/stats")
+    print(f"📡 ComNav API:        http://0.0.0.0:5000/api/comnav/command")
     print(f"💾 Data Source:       {JSON_DATA_FILE}")
     print("=" * 70)
-    print("✨ NUEVO: GPS Professional con DATUM, Proyectos, Replanteo, PPP, TILT y Cámara")
+    print("✨ NUEVO: ComNav K222 Control con comandos INS/TILT en tiempo real")
     print("✅ Server running. Press Ctrl+C to stop.")
     print("")
 

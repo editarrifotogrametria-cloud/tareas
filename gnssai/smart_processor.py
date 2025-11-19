@@ -428,39 +428,90 @@ class SmartProcessor:
         snapshot.sort(key=sort_key)
         return snapshot
 
-    # ---------------------- TILT (esqueleto) ---------------------- #
+    # ---------------------- TILT (ComNav GPNAV/GPYBM) ---------------------- #
     def parse_tilt_sentence(self, line: str):
         """
-        PARSEO DE TILT (ESQUELETO):
+        PARSEO DE TILT para módulos ComNav K222/K803/K823 con INS/IMU.
 
-        Aquí debes adaptar el formato a la sentencia REAL que emita tu K222/K922.
-        Ejemplos típicos en módulos GNSS+INS:
-          - Sentencias propietarias tipo $PSTI,030,ROLL,PITCH,HEADING,...
-          - O mensajes ASCII de INS/ATTITUDE.
+        Soporta:
+        - $GPNAV: Mensaje ComNav con posición, velocidad, heading, pitch, roll
+        - $GPYBM: Mensaje ComNav con heading y pitch (modo dual-antenna o INS)
+        - $PSTI,030: Formato estándar INS (ejemplo genérico)
 
-        PASOS:
-        1. En el Pi:   sudo cat /dev/serial0 | grep -i 'sti'   (o 'tilt' / 'ins')
-        2. Identifica la sentencia que lleve roll/pitch/heading.
-        3. Ajusta el parsing abajo.
+        Formatos típicos:
+        $GPNAV,time,lat,lat_dir,lon,lon_dir,quality,sats,hdop,alt,geoid,dgps_age,dgps_id,heading,pitch,roll,vel_n,vel_e,vel_d*checksum
+        $GPYBM,time,heading,heading_type,pitch,pitch_type*checksum
         """
         if not line.startswith("$"):
             return
 
-        # EJEMPLO FICTICIO: $PSTI,030,roll,pitch,heading,tilt_flag,...
+        # ComNav GPNAV (posición + actitud completa)
+        if "GPNAV" in line or "GNAV" in line:
+            parts = line.split(",")
+            try:
+                # El formato puede variar, pero típicamente:
+                # heading está en campo 13, pitch en 14, roll en 15
+                if len(parts) >= 16:
+                    heading = float(parts[13]) if parts[13] else 0.0
+                    pitch = float(parts[14]) if parts[14] else 0.0
+                    roll_field = parts[15].split("*")[0] if "*" in parts[15] else parts[15]
+                    roll = float(roll_field) if roll_field else 0.0
+
+                    self.tilt["heading"] = heading
+                    self.tilt["pitch"] = pitch
+                    self.tilt["roll"] = roll
+                    self.tilt["angle"] = (abs(roll) ** 2 + abs(pitch) ** 2) ** 0.5
+                    self.tilt["status"] = "GPNAV"
+                    return
+            except (ValueError, IndexError):
+                pass
+
+        # ComNav GPYBM (heading + pitch en modo dual-antenna o INS)
+        if "GPYBM" in line or "PYBM" in line:
+            parts = line.split(",")
+            try:
+                # Formato: $GPYBM,time,heading,T/M,pitch,M,...*checksum
+                if len(parts) >= 5:
+                    heading = float(parts[2]) if parts[2] else 0.0
+                    pitch_field = parts[4].split("*")[0] if "*" in parts[4] else parts[4]
+                    pitch = float(pitch_field) if pitch_field else 0.0
+
+                    self.tilt["heading"] = heading
+                    self.tilt["pitch"] = pitch
+                    # GPYBM no reporta roll, mantener valor anterior
+                    self.tilt["angle"] = (abs(self.tilt["roll"]) ** 2 + abs(pitch) ** 2) ** 0.5
+                    self.tilt["status"] = "GPYBM"
+                    return
+            except (ValueError, IndexError):
+                pass
+
+        # Formato estándar PSTI INS (ejemplo genérico)
         if line.startswith("$PSTI,030"):
             parts = line.split(",")
             try:
                 roll = float(parts[2])
                 pitch = float(parts[3])
                 heading = float(parts[4])
-            except (ValueError, IndexError):
-                return
 
-            self.tilt["roll"] = roll
-            self.tilt["pitch"] = pitch
-            self.tilt["heading"] = heading
-            self.tilt["angle"] = (abs(roll) ** 2 + abs(pitch) ** 2) ** 0.5
-            self.tilt["status"] = "OK"
+                self.tilt["roll"] = roll
+                self.tilt["pitch"] = pitch
+                self.tilt["heading"] = heading
+                self.tilt["angle"] = (abs(roll) ** 2 + abs(pitch) ** 2) ** 0.5
+                self.tilt["status"] = "PSTI"
+            except (ValueError, IndexError):
+                pass
+
+        # Mensaje GPTRA (ComNav dual-antenna attitude)
+        if "GPTRA" in line or "PTRA" in line:
+            parts = line.split(",")
+            try:
+                # Formato: $GPTRA,time,heading,heading_status,...
+                if len(parts) >= 3:
+                    heading = float(parts[2]) if parts[2] else 0.0
+                    self.tilt["heading"] = heading
+                    self.tilt["status"] = "GPTRA"
+            except (ValueError, IndexError):
+                pass
 
     # ---------------------- Loop de procesado ---------------------- #
     def process_nmea_line(self, line: str):
