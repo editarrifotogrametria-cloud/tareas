@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+
+    <title>GNSS.AI Point Collector</title>
+
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --accent: #22c55e;
+            --accent-dark: #16a34a;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #475569;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #22c55e, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--accent);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1rem;
+            padding-bottom: 5rem;
+        }
+
+        /* Position Card */
+        .position-card {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .position-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .position-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .rtk-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            animation: fadeIn 0.3s;
+        }
+
+        .rtk-fixed {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .rtk-float {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .rtk-none {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .coords-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .coord-item {
+            background: rgba(51, 65, 85, 0.5);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+        }
+
+        .coord-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .coord-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .accuracy-bar {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .accuracy-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .accuracy-progress {
+            height: 8px;
+            background: rgba(51, 65, 85, 0.5);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .accuracy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+            border-radius: 999px;
+            transition: width 0.5s ease;
+        }
+
+        /* Capture Button */
+        .capture-section {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .capture-btn {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: white;
+            font-size: 1.125rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .capture-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+
+        .capture-btn:disabled {
+            background: linear-gradient(135deg, #475569, #334155);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .capture-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .capture-btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .capture-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Points List */
+        .points-section {
+            margin-top: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-export {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-export:active {
+            transform: scale(0.95);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .points-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .point-item {
+            background: var(--bg-secondary);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            animation: slideIn 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .point-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.75rem;
+        }
+
+        .point-name {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .point-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .point-delete {
+            padding: 0.375rem 0.75rem;
+            border: none;
+            border-radius: 0.375rem;
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .point-coords {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .point-coord {
+            color: var(--text-muted);
+        }
+
+        .point-coord strong {
+            color: var(--text);
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            background: var(--bg-secondary);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Bottom Bar */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .bottom-bar-content {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-bottom {
+            flex: 1;
+            padding: 0.875rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-csv {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-json {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--bg-secondary);
+            color: var(--text);
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            z-index: 1000;
+            animation: slideDown 0.3s ease forwards;
+            max-width: 90%;
+        }
+
+        @keyframes slideDown {
+            to { transform: translateX(-50%) translateY(0); }
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--accent);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .coords-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .capture-btn {
+                width: 140px;
+                height: 140px;
+                font-size: 1rem;
+            }
+
+            .capture-icon {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">📍 GNSS Point Collector</div>
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                <span id="connection-status">Conectando...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Current Position -->
+        <div class="position-card">
+            <div class="position-header">
+                <div class="position-title">Posición Actual</div>
+                <div id="rtk-badge" class="rtk-badge rtk-none">SIN FIX</div>
+            </div>
+
+            <div class="coords-grid">
+                <div class="coord-item">
+                    <div class="coord-label">Latitud</div>
+                    <div class="coord-value" id="current-lat">--</div>
+                </div>
+                <div class="coord-item">
+                    <div class="coord-label">Longitud</div>
+                    <div class="coord-value" id="current-lon">--</div>
+                </div>
+                <div class="coord-item">
+                    <div class="coord-label">Altura (m)</div>
+                    <div class="coord-value" id="current-alt">--</div>
+                </div>
+                <div class="coord-item">
+                    <div class="coord-label">Satélites</div>
+                    <div class="coord-value" id="current-sats">--</div>
+                </div>
+            </div>
+
+            <div class="accuracy-bar">
+                <div class="accuracy-label">
+                    <span>Precisión estimada</span>
+                    <span id="accuracy-value">-- cm</span>
+                </div>
+                <div class="accuracy-progress">
+                    <div id="accuracy-fill" class="accuracy-fill" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capture Button -->
+        <div class="capture-section">
+            <button id="capture-btn" class="capture-btn" disabled>
+                <span class="capture-icon">📍</span>
+                <span>TOMAR PUNTO</span>
+            </button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="stat-total">0</div>
+                <div class="stat-label">Total Puntos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-rtk">0</div>
+                <div class="stat-label">RTK Fixed</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-accuracy">--</div>
+                <div class="stat-label">Precisión Media</div>
+            </div>
+        </div>
+
+        <!-- Points List -->
+        <div class="points-section">
+            <div class="section-header">
+                <div class="section-title">Puntos Guardados</div>
+                <button id="btn-clear-all" class="btn-small btn-danger" style="display: none;">
+                    Borrar Todos
+                </button>
+            </div>
+            <div id="points-list" class="points-list">
+                <div class="empty-state">
+                    <div class="empty-icon">📌</div>
+                    <div>No hay puntos guardados</div>
+                    <div style="font-size: 0.875rem; margin-top: 0.5rem;">
+                        Presiona el botón para tomar tu primer punto
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="bottom-bar">
+        <div class="bottom-bar-content">
+            <button id="btn-export-csv" class="btn-bottom btn-csv">📄 Exportar CSV</button>
+            <button id="btn-export-json" class="btn-bottom btn-json">💾 Exportar JSON</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // Estado global
+        let currentGNSSData = {};
+        let points = [];
+        let socket = null;
+
+        // Conectar WebSocket
+        function connectWebSocket() {
+            socket = io('/points');
+
+            socket.on('connect', () => {
+                updateConnectionStatus(true);
+                console.log('✅ WebSocket conectado');
+            });
+
+            socket.on('disconnect', () => {
+                updateConnectionStatus(false);
+                console.log('❌ WebSocket desconectado');
+            });
+
+            socket.on('gnss_update', (data) => {
+                currentGNSSData = data;
+                updatePositionUI(data);
+            });
+
+            socket.on('point_saved', (point) => {
+                loadPoints();
+                showNotification('✅ Punto guardado correctamente', 'success');
+            });
+
+            socket.on('point_deleted', (data) => {
+                loadPoints();
+            });
+
+            socket.on('all_points_deleted', () => {
+                loadPoints();
+                showNotification('🗑️ Todos los puntos eliminados', 'success');
+            });
+        }
+
+        // Actualizar estado de conexión
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connection-status');
+            if (connected) {
+                statusEl.textContent = 'Conectado';
+            } else {
+                statusEl.textContent = 'Desconectado';
+            }
+        }
+
+        // Actualizar UI de posición
+        function updatePositionUI(data) {
+            if (!data || !data.position) return;
+
+            // Coordenadas
+            document.getElementById('current-lat').textContent =
+                data.position.lat ? data.position.lat.toFixed(8) : '--';
+            document.getElementById('current-lon').textContent =
+                data.position.lon ? data.position.lon.toFixed(8) : '--';
+            document.getElementById('current-alt').textContent =
+                data.position.alt ? data.position.alt.toFixed(3) : '--';
+            document.getElementById('current-sats').textContent =
+                data.satellites || '--';
+
+            // RTK Status
+            const rtkBadge = document.getElementById('rtk-badge');
+            const quality = data.quality || 0;
+
+            if (quality === 4) {
+                rtkBadge.textContent = 'RTK FIXED';
+                rtkBadge.className = 'rtk-badge rtk-fixed';
+            } else if (quality === 5) {
+                rtkBadge.textContent = 'RTK FLOAT';
+                rtkBadge.className = 'rtk-badge rtk-float';
+            } else if (quality === 1 || quality === 2) {
+                rtkBadge.textContent = quality === 2 ? 'DGPS' : 'GPS';
+                rtkBadge.className = 'rtk-badge rtk-float';
+            } else {
+                rtkBadge.textContent = 'SIN FIX';
+                rtkBadge.className = 'rtk-badge rtk-none';
+            }
+
+            // Precisión
+            const accuracy = data.estimated_accuracy || 0;
+            document.getElementById('accuracy-value').textContent =
+                accuracy > 0 ? accuracy.toFixed(1) + ' cm' : '-- cm';
+
+            // Barra de precisión (inversa: mejor precisión = más barra)
+            let accuracyPercent = 0;
+            if (accuracy > 0) {
+                if (accuracy <= 5) accuracyPercent = 100;
+                else if (accuracy <= 10) accuracyPercent = 80;
+                else if (accuracy <= 20) accuracyPercent = 60;
+                else if (accuracy <= 50) accuracyPercent = 40;
+                else if (accuracy <= 100) accuracyPercent = 20;
+                else accuracyPercent = 10;
+            }
+            document.getElementById('accuracy-fill').style.width = accuracyPercent + '%';
+
+            // Habilitar/deshabilitar botón de captura
+            const captureBtn = document.getElementById('capture-btn');
+            if (quality >= 1 && data.position.lat !== 0 && data.position.lon !== 0) {
+                captureBtn.disabled = false;
+            } else {
+                captureBtn.disabled = true;
+            }
+        }
+
+        // Cargar puntos
+        async function loadPoints() {
+            try {
+                const response = await fetch('/api/points');
+                points = await response.json();
+                renderPoints();
+                updateStats();
+            } catch (error) {
+                console.error('Error cargando puntos:', error);
+            }
+        }
+
+        // Renderizar lista de puntos
+        function renderPoints() {
+            const listEl = document.getElementById('points-list');
+            const clearBtn = document.getElementById('btn-clear-all');
+
+            if (points.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📌</div>
+                        <div>No hay puntos guardados</div>
+                        <div style="font-size: 0.875rem; margin-top: 0.5rem;">
+                            Presiona el botón para tomar tu primer punto
+                        </div>
+                    </div>
+                `;
+                clearBtn.style.display = 'none';
+                return;
+            }
+
+            clearBtn.style.display = 'block';
+
+            listEl.innerHTML = points.map(point => `
+                <div class="point-item">
+                    <div class="point-header">
+                        <div>
+                            <div class="point-name">${point.name || point.point_id}</div>
+                            <div class="point-time">${point.date_str} ${point.time_str}</div>
+                        </div>
+                        <button class="point-delete" onclick="deletePoint('${point.point_id}')">
+                            🗑️ Eliminar
+                        </button>
+                    </div>
+                    <div class="point-coords">
+                        <div class="point-coord">
+                            Lat: <strong>${point.latitude.toFixed(8)}</strong>
+                        </div>
+                        <div class="point-coord">
+                            Lon: <strong>${point.longitude.toFixed(8)}</strong>
+                        </div>
+                        <div class="point-coord">
+                            Alt: <strong>${point.altitude.toFixed(3)} m</strong>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Actualizar estadísticas
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+
+                document.getElementById('stat-total').textContent = stats.total;
+                document.getElementById('stat-rtk').textContent = stats.rtk_fixed;
+                document.getElementById('stat-accuracy').textContent =
+                    stats.avg_accuracy > 0 ? stats.avg_accuracy.toFixed(1) + ' cm' : '--';
+            } catch (error) {
+                console.error('Error cargando stats:', error);
+            }
+        }
+
+        // Tomar punto
+        async function capturePoint() {
+            const captureBtn = document.getElementById('capture-btn');
+
+            if (!currentGNSSData || !currentGNSSData.position) {
+                showNotification('❌ No hay datos GNSS disponibles', 'error');
+                return;
+            }
+
+            const originalText = captureBtn.innerHTML;
+            captureBtn.innerHTML = '<div class="spinner"></div><span style="margin-left: 0.5rem;">Guardando...</span>';
+            captureBtn.disabled = true;
+
+            try {
+                const pointData = {
+                    latitude: currentGNSSData.position.lat,
+                    longitude: currentGNSSData.position.lon,
+                    altitude: currentGNSSData.position.alt,
+                    quality: currentGNSSData.quality,
+                    rtk_status: currentGNSSData.rtk_status,
+                    hdop: currentGNSSData.hdop,
+                    satellites: currentGNSSData.satellites,
+                    estimated_accuracy: currentGNSSData.estimated_accuracy
+                };
+
+                const response = await fetch('/api/points', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pointData)
+                });
+
+                if (response.ok) {
+                    // La notificación se muestra desde el evento WebSocket
+                    await loadPoints();
+                } else {
+                    const error = await response.json();
+                    showNotification('❌ Error: ' + error.error, 'error');
+                }
+            } catch (error) {
+                showNotification('❌ Error de red: ' + error.message, 'error');
+            } finally {
+                captureBtn.innerHTML = originalText;
+                captureBtn.disabled = false;
+            }
+        }
+
+        // Eliminar punto
+        async function deletePoint(pointId) {
+            if (!confirm('¿Eliminar este punto?')) return;
+
+            try {
+                const response = await fetch(`/api/points/${pointId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showNotification('🗑️ Punto eliminado', 'success');
+                }
+            } catch (error) {
+                showNotification('❌ Error eliminando punto', 'error');
+            }
+        }
+
+        // Eliminar todos los puntos
+        async function deleteAllPoints() {
+            if (!confirm('¿Eliminar TODOS los puntos? Esta acción no se puede deshacer.')) return;
+
+            try {
+                const response = await fetch('/api/points/delete-all', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    // La notificación se muestra desde el evento WebSocket
+                }
+            } catch (error) {
+                showNotification('❌ Error eliminando puntos', 'error');
+            }
+        }
+
+        // Exportar CSV
+        function exportCSV() {
+            window.location.href = '/api/export/csv';
+            showNotification('📄 Exportando CSV...', 'success');
+        }
+
+        // Exportar JSON
+        function exportJSON() {
+            window.location.href = '/api/export/json';
+            showNotification('💾 Exportando JSON...', 'success');
+        }
+
+        // Mostrar notificación
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'fadeOut 0.3s ease forwards';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Event Listeners
+        document.getElementById('capture-btn').addEventListener('click', capturePoint);
+        document.getElementById('btn-export-csv').addEventListener('click', exportCSV);
+        document.getElementById('btn-export-json').addEventListener('click', exportJSON);
+        document.getElementById('btn-clear-all').addEventListener('click', deleteAllPoints);
+
+        // Inicializar
+        connectWebSocket();
+        loadPoints();
+
+        // Instalar como PWA
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('📱 App puede instalarse como PWA');
+        });
+
+        // Añadir animación fadeOut
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                to {
+                    opacity: 0;
+                    transform: translateX(-50%) translateY(-20px);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
