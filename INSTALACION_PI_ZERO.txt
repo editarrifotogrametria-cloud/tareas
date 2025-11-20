@@ -1,0 +1,272 @@
+═══════════════════════════════════════════════════════════════════════════
+  📍 INSTALACIÓN EN RASPBERRY PI ZERO 2W - GUÍA PASO A PASO
+═══════════════════════════════════════════════════════════════════════════
+
+🎯 OBJETIVO: Instalar GNSS.AI Point Collector en tu Pi Zero 2W + K222
+
+═══════════════════════════════════════════════════════════════════════════
+PASO 1: CONECTAR A TU RASPBERRY PI
+═══════════════════════════════════════════════════════════════════════════
+
+Opción A - Por SSH (Recomendado):
+──────────────────────────────────
+
+1. Desde tu computadora, abre terminal/PowerShell:
+
+   # Linux/Mac:
+   ssh pi@raspberrypi.local
+
+   # Windows (PowerShell):
+   ssh pi@raspberrypi.local
+
+   # Si no funciona .local, usa la IP:
+   ssh pi@192.168.1.XXX
+
+   Contraseña por defecto: raspberry
+
+
+Opción B - Conectar monitor y teclado:
+───────────────────────────────────────
+
+1. Conecta monitor HDMI y teclado USB a la Pi
+2. Enciende la Pi
+3. Login: pi
+4. Password: raspberry
+
+═══════════════════════════════════════════════════════════════════════════
+PASO 2: CLONAR EL REPOSITORIO
+═══════════════════════════════════════════════════════════════════════════
+
+Una vez dentro de la Pi, ejecuta:
+
+cd ~
+git clone https://github.com/editarrifotogrametria-cloud/tareas.git gnssai
+cd gnssai
+
+Si NO tienes git instalado:
+───────────────────────────
+
+sudo apt-get update
+sudo apt-get install -y git
+cd ~
+git clone https://github.com/editarrifotogrametria-cloud/tareas.git gnssai
+cd gnssai
+
+═══════════════════════════════════════════════════════════════════════════
+PASO 3: VERIFICAR QUE SE CLONÓ CORRECTAMENTE
+═══════════════════════════════════════════════════════════════════════════
+
+Ejecuta:
+
+ls -la
+
+Deberías ver estos archivos:
+✅ install_pi_zero.sh
+✅ point_collector_app.py
+✅ smart_processor.py
+✅ requirements.txt
+✅ README.md
+✅ (y muchos más...)
+
+═══════════════════════════════════════════════════════════════════════════
+PASO 4: EJECUTAR EL INSTALADOR AUTOMÁTICO
+═══════════════════════════════════════════════════════════════════════════
+
+chmod +x install_pi_zero.sh
+./install_pi_zero.sh
+
+El instalador hará:
+✅ Actualizar el sistema
+✅ Instalar dependencias Python
+✅ Configurar UART para el K222
+✅ Crear servicios systemd
+✅ (Opcional) Configurar WiFi Hotspot
+
+PREGUNTAS DURANTE LA INSTALACIÓN:
+─────────────────────────────────
+
+1. "¿Continuar de todos modos?"
+   → Responde: y
+
+2. "¿Configurar WiFi Hotspot?"
+   → Responde: y (RECOMENDADO - para acceso directo desde celular)
+
+3. "¿Iniciar servicios ahora?"
+   → Responde: y
+
+═══════════════════════════════════════════════════════════════════════════
+PASO 5: REINICIAR LA RASPBERRY PI
+═══════════════════════════════════════════════════════════════════════════
+
+Después de la instalación, DEBES reiniciar:
+
+sudo reboot
+
+Espera 30-60 segundos que la Pi reinicie completamente.
+
+═══════════════════════════════════════════════════════════════════════════
+PASO 6: ACCEDER A LA APLICACIÓN DESDE TU CELULAR
+═══════════════════════════════════════════════════════════════════════════
+
+Opción A - WiFi Hotspot (Si configuraste en paso 4):
+────────────────────────────────────────────────────
+
+1. En tu celular, busca WiFi: "GNSS-AI-Collector"
+2. Contraseña: gnssai2024
+3. Abre navegador: http://192.168.4.1:8080
+
+
+Opción B - Red local (misma WiFi):
+──────────────────────────────────
+
+1. Celular y Pi en la misma red WiFi
+2. Averigua IP de la Pi:
+
+   ssh pi@raspberrypi.local
+   hostname -I
+
+   Te dará algo como: 192.168.1.105
+
+3. Abre navegador: http://192.168.1.105:8080
+
+═══════════════════════════════════════════════════════════════════════════
+PASO 7: VERIFICAR QUE TODO FUNCIONA
+═══════════════════════════════════════════════════════════════════════════
+
+Conecta por SSH nuevamente y ejecuta:
+
+# Ver estado de servicios
+sudo systemctl status gnssai-processor
+sudo systemctl status gnssai-collector
+
+Ambos deben mostrar: "active (running)" ✅
+
+# Ver datos NMEA del K222
+sudo cat /dev/serial0
+
+Deberías ver frases NMEA pasando (si el K222 está conectado)
+
+# Ver logs en vivo
+sudo journalctl -u gnssai-collector -f
+
+Presiona Ctrl+C para salir
+
+═══════════════════════════════════════════════════════════════════════════
+🔧 COMANDOS ÚTILES
+═══════════════════════════════════════════════════════════════════════════
+
+# Ver IP de la Pi
+hostname -I
+
+# Reiniciar servicios
+sudo systemctl restart gnssai-processor
+sudo systemctl restart gnssai-collector
+
+# Detener servicios
+sudo systemctl stop gnssai-processor
+sudo systemctl stop gnssai-collector
+
+# Ver logs
+sudo journalctl -u gnssai-processor -f
+sudo journalctl -u gnssai-collector -f
+
+# Ver datos NMEA
+sudo cat /dev/serial0
+
+═══════════════════════════════════════════════════════════════════════════
+❌ SOLUCIÓN DE PROBLEMAS
+═══════════════════════════════════════════════════════════════════════════
+
+Problema: "git: command not found"
+───────────────────────────────────
+Solución:
+sudo apt-get update
+sudo apt-get install -y git
+
+
+Problema: No puedo conectar por SSH
+────────────────────────────────────
+Solución:
+1. Verifica que SSH esté habilitado en la Pi
+2. Usa la IP directa en vez de .local
+3. Verifica que estés en la misma red
+
+
+Problema: No veo datos NMEA
+───────────────────────────
+Solución:
+1. Verifica cables del K222
+2. sudo cat /dev/serial0 debe mostrar datos
+3. Verifica que UART esté habilitado
+
+
+Problema: Aplicación no carga
+──────────────────────────────
+Solución:
+sudo systemctl restart gnssai-collector
+sudo journalctl -u gnssai-collector -n 50
+
+
+Problema: WiFi Hotspot no aparece
+──────────────────────────────────
+Solución:
+sudo systemctl restart hostapd
+sudo systemctl restart dnsmasq
+
+═══════════════════════════════════════════════════════════════════════════
+📱 USAR LA APLICACIÓN
+═══════════════════════════════════════════════════════════════════════════
+
+Una vez que cargue http://192.168.4.1:8080 verás:
+
+┌─────────────────────────────────┐
+│  📍 GNSS Point Collector        │
+│                    🟢 Conectado │
+├─────────────────────────────────┤
+│  Posición Actual   [RTK FIXED]  │
+│  Lat: --                        │
+│  Lon: --                        │
+│  Alt: --                        │
+│  Sats: --                       │
+├─────────────────────────────────┤
+│         ┌─────────┐             │
+│         │   📍    │             │
+│         │  TOMAR  │             │
+│         │  PUNTO  │             │
+│         └─────────┘             │
+└─────────────────────────────────┘
+
+PARA TOMAR UN PUNTO:
+1. Espera que aparezca "RTK FIXED" (verde)
+2. Presiona el botón grande 📍
+3. ¡Listo! El punto se guarda automáticamente
+
+PARA EXPORTAR:
+1. Presiona "📄 Exportar CSV" (para Excel)
+2. O presiona "💾 Exportar JSON"
+
+═══════════════════════════════════════════════════════════════════════════
+✅ CHECKLIST RÁPIDO
+═══════════════════════════════════════════════════════════════════════════
+
+□ Conectado a la Pi por SSH
+□ Clonado el repositorio con git clone
+□ Ejecutado ./install_pi_zero.sh
+□ Respondido 'y' a las preguntas
+□ Reiniciado con sudo reboot
+□ Servicios activos (systemctl status)
+□ Aplicación carga en el navegador
+□ K222 conectado al UART
+□ Datos NMEA visibles (cat /dev/serial0)
+
+═══════════════════════════════════════════════════════════════════════════
+🎉 ¡LISTO PARA TOMAR PUNTOS!
+═══════════════════════════════════════════════════════════════════════════
+
+Para soporte completo, ver documentación:
+→ README.md
+→ QUICK_START.md
+→ README_POINT_COLLECTOR.md
+→ CLAUDE.md
+
+═══════════════════════════════════════════════════════════════════════════
